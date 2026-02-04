@@ -1,23 +1,41 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { AuthLayout } from '../../../components/layout';
-import { DarkInput, Button } from '../../../components/ui';
+import { DarkInput, Button, Alert } from '../../../components/ui';
 import { AUTH_TEXT } from '../constants';
+import { registerSchema, type RegisterFormData } from '../../../schemas';
+import { useRegisterMutation } from '../services/authApi';
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [registerUser, { isLoading, error }] = useRegisterMutation();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle registration logic here
-    console.log('Registration attempt:', { username, email, password });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+    },
+  });
 
-    // After successful registration, navigate to dashboard
-    navigate('/dashboard');
+  const onSubmit = async (data: RegisterFormData) => {
+    try {
+      await registerUser(data).unwrap();
+      reset();
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Registration failed:', err);
+    }
   };
 
   return (
@@ -39,45 +57,57 @@ export const RegisterForm = () => {
         </p>
       }
     >
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <DarkInput
-          label={AUTH_TEXT.REGISTER.USERNAME_LABEL}
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder={AUTH_TEXT.REGISTER.USERNAME_PLACEHOLDER}
-          leftIcon="person"
-          autoComplete="off"
-        />
+      <div className="flex flex-col gap-4">
+        {/* Error State */}
+        {error && (
+          <Alert
+            variant="error"
+            title={AUTH_TEXT.REGISTER.ERROR_TITLE}
+            message={'message' in error ? (error as { message: string }).message : AUTH_TEXT.REGISTER.ERROR_MESSAGE}
+          />
+        )}
 
-        <DarkInput
-          label={AUTH_TEXT.REGISTER.EMAIL_LABEL}
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={AUTH_TEXT.REGISTER.EMAIL_PLACEHOLDER}
-          leftIcon="mail"
-        />
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <DarkInput
+            label={AUTH_TEXT.REGISTER.USERNAME_LABEL}
+            type="text"
+            placeholder={AUTH_TEXT.REGISTER.USERNAME_PLACEHOLDER}
+            leftIcon="person"
+            autoComplete="off"
+            error={errors.username?.message}
+            {...register('username')}
+          />
 
-        <DarkInput
-          label={AUTH_TEXT.REGISTER.PASSWORD_LABEL}
-          type={showPassword ? 'text' : 'password'}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={AUTH_TEXT.REGISTER.PASSWORD_PLACEHOLDER}
-          leftIcon="lock"
-          rightIcon={showPassword ? 'visibility_off' : 'visibility'}
-          onRightIconClick={() => setShowPassword(!showPassword)}
-        />
+          <DarkInput
+            label={AUTH_TEXT.REGISTER.EMAIL_LABEL}
+            type="email"
+            placeholder={AUTH_TEXT.REGISTER.EMAIL_PLACEHOLDER}
+            leftIcon="mail"
+            error={errors.email?.message}
+            {...register('email')}
+          />
 
-        <Button
-          type="submit"
-          className="mt-2 rounded-xl shadow-lg shadow-blue-500/25 h-12"
-        >
-          {AUTH_TEXT.REGISTER.SUBMIT_BUTTON}
-        </Button>
-      </form>
+          <DarkInput
+            label={AUTH_TEXT.REGISTER.PASSWORD_LABEL}
+            type={showPassword ? 'text' : 'password'}
+            placeholder={AUTH_TEXT.REGISTER.PASSWORD_PLACEHOLDER}
+            leftIcon="lock"
+            rightIcon={showPassword ? 'visibility_off' : 'visibility'}
+            onRightIconClick={() => setShowPassword(!showPassword)}
+            error={errors.password?.message}
+            {...register('password')}
+          />
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="mt-2 rounded-xl shadow-lg shadow-blue-500/25 h-12"
+          >
+            {isLoading ? AUTH_TEXT.REGISTER.LOADING_BUTTON : AUTH_TEXT.REGISTER.SUBMIT_BUTTON}
+          </Button>
+        </form>
+      </div>
     </AuthLayout>
   );
 };

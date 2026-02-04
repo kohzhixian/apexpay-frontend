@@ -1,24 +1,87 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { AuthLayout } from '../../../components/layout';
 import { DarkInput, Button, Alert, Checkbox } from '../../../components/ui';
 import { AUTH_TEXT } from '../constants';
+import { loginSchema, type LoginFormData } from '../../../schemas';
+import { useLoginMutation } from '../services/authApi';
+
+/**
+ * Extracts a user-friendly error message from RTK Query error
+ * @param error - The error object from RTK Query mutation
+ * @returns A user-friendly error title and message
+ */
+const getErrorMessage = (error: unknown): { title: string; message: string } => {
+  if (error && typeof error === 'object' && 'data' in error) {
+    const data = (error as { data: unknown }).data;
+
+    // Handle plain string response (e.g., "The User Service is currently taking too long...")
+    if (typeof data === 'string' && data.length > 0) {
+      const isServiceError = data.toLowerCase().includes('service') ||
+        data.toLowerCase().includes('down') ||
+        data.toLowerCase().includes('unavailable') ||
+        data.toLowerCase().includes('taking too long');
+
+      return {
+        title: isServiceError ? AUTH_TEXT.LOGIN.SERVICE_UNAVAILABLE_TITLE : AUTH_TEXT.LOGIN.LOGIN_FAILED_TITLE,
+        message: data,
+      };
+    }
+
+    // Handle JSON response with message property
+    if (data && typeof data === 'object' && 'message' in data) {
+      const apiMessage = (data as { message: string }).message;
+      const isServiceError = apiMessage.toLowerCase().includes('service') ||
+        apiMessage.toLowerCase().includes('down') ||
+        apiMessage.toLowerCase().includes('unavailable') ||
+        apiMessage.toLowerCase().includes('taking too long');
+
+      return {
+        title: isServiceError ? AUTH_TEXT.LOGIN.SERVICE_UNAVAILABLE_TITLE : AUTH_TEXT.LOGIN.LOGIN_FAILED_TITLE,
+        message: apiMessage,
+      };
+    }
+  }
+
+  // Fallback to default credentials error
+  return {
+    title: AUTH_TEXT.LOGIN.ERROR_TITLE,
+    message: AUTH_TEXT.LOGIN.ERROR_MESSAGE,
+  };
+};
 
 export const LoginForm = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [login, { isLoading, error }] = useLoginMutation();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle login logic here
-    console.log('Login attempt:', { email, password, rememberMe });
+  const errorInfo = error ? getErrorMessage(error) : null;
 
-    // For now, redirect to dashboard (replace with actual auth logic later)
-    navigate('/dashboard');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      await login({ email: data.email, password: data.password }).unwrap();
+      reset();
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Login failed:', err);
+    }
   };
 
   return (
@@ -42,44 +105,42 @@ export const LoginForm = () => {
     >
       <div className="flex flex-col gap-4">
         {/* Error State */}
-        {showError && (
+        {errorInfo && (
           <Alert
             variant="error"
-            title={AUTH_TEXT.LOGIN.ERROR_TITLE}
-            message={AUTH_TEXT.LOGIN.ERROR_MESSAGE}
-            onDismiss={() => setShowError(false)}
+            title={errorInfo.title}
+            message={errorInfo.message}
           />
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <DarkInput
             label={AUTH_TEXT.LOGIN.EMAIL_LABEL}
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             placeholder={AUTH_TEXT.LOGIN.EMAIL_PLACEHOLDER}
             leftIcon="mail"
+            error={errors.email?.message}
+            {...register('email')}
           />
 
           <DarkInput
             label={AUTH_TEXT.LOGIN.PASSWORD_LABEL}
             type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             placeholder={AUTH_TEXT.LOGIN.PASSWORD_PLACEHOLDER}
             leftIcon="lock"
             rightIcon={showPassword ? 'visibility_off' : 'visibility'}
             onRightIconClick={() => setShowPassword(!showPassword)}
+            error={errors.password?.message}
+            {...register('password')}
           />
 
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between mt-1">
             <Checkbox
               label={AUTH_TEXT.LOGIN.REMEMBER_ME}
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
               variant="dark"
+              {...register('rememberMe')}
             />
             <button
               type="button"
@@ -90,8 +151,8 @@ export const LoginForm = () => {
             </button>
           </div>
 
-          <Button type="submit" leftIcon="login" className="mt-2 rounded-xl shadow-lg shadow-blue-500/25 h-12">
-            {AUTH_TEXT.LOGIN.SUBMIT_BUTTON}
+          <Button type="submit" disabled={isLoading} leftIcon="login" className="mt-2 rounded-xl shadow-lg shadow-blue-500/25 h-12">
+            {isLoading ? AUTH_TEXT.LOGIN.LOADING_BUTTON : AUTH_TEXT.LOGIN.SUBMIT_BUTTON}
           </Button>
         </form>
       </div>
