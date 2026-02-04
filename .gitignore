@@ -24,3 +24,13 @@ dist-ssr
 *.sw?
 # Documentation
 docs/COMPONENTS.md
+
+# Kiro
+.kiro/steering/
+
+# Environment files
+.env
+.env.development
+.env.production
+.env.local
+.env.*.local
