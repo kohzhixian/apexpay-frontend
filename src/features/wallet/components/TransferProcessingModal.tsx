@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { MODAL_TEXT, ICONS, TRANSFER_PROCESSING_STEPS, TRANSFER_LOG_ENTRIES } from '../constants/text';
 
 interface ProcessingStep {
@@ -10,11 +9,7 @@ interface ProcessingStep {
     progress?: number;
 }
 
-interface LogEntry {
-    timestamp: string;
-    status: 'OK' | 'INFO' | 'PROC';
-    message: string;
-}
+// LogEntry type is defined in constants/text.ts via TRANSFER_LOG_ENTRIES
 
 interface TransferProcessingModalProps {
     isOpen: boolean;
@@ -46,15 +41,9 @@ export const TransferProcessingModal = ({
 
     const logEntries = TRANSFER_LOG_ENTRIES;
 
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const timer = window.setTimeout(() => {
-            onComplete();
-        }, 5000);
-
-        return () => clearTimeout(timer);
-    }, [isOpen, onComplete]);
+    // Note: The parent component (TransferModal) controls when to close this modal
+    // via its hybrid approach (API complete + minimum display time).
+    // No internal timer needed here.
 
     if (!isOpen) return null;
 
