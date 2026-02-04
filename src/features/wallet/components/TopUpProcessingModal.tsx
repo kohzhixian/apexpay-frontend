@@ -52,7 +52,10 @@ export const TopUpProcessingModal = ({
     ];
 
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen) {
+            setProgress(0);
+            return;
+        }
 
         const interval = setInterval(() => {
             setProgress((prev) => {
@@ -65,7 +68,9 @@ export const TopUpProcessingModal = ({
             });
         }, 50);
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+        };
     }, [isOpen, onComplete]);
 
     if (!isOpen) return null;
