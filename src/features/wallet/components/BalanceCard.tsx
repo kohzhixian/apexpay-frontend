@@ -1,4 +1,5 @@
 import { formatCurrency } from '../utils/formatters';
+import { BALANCE_CARD_TEXT } from '../constants/text';
 
 export interface BalanceCardProps {
     title: string;
@@ -47,7 +48,7 @@ export const BalanceCard = ({
                             lock_clock
                         </span>
                         <span className="text-slate-400 text-xs font-bold">
-                            Locked
+                            {BALANCE_CARD_TEXT.LOCKED}
                         </span>
                     </div>
                 ) : changePercent !== undefined ? (

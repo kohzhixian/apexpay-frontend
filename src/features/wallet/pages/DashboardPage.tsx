@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { BalanceData, Transaction } from '../types';
+import type { Transaction } from '../types';
 import { TransactionStatus, TransactionType } from '../types';
 import { Sidebar } from '../components/Sidebar';
 import { DashboardHeader } from '../components/DashboardHeader';
@@ -9,80 +9,71 @@ import { QuickActionButton } from '../components/QuickActionButton';
 import { TransactionTable } from '../components/TransactionTable';
 import { TopUpModal } from '../components/TopUpModal';
 import { APP_NAME, DASHBOARD_TEXT, QUICK_ACTIONS, QUICK_ACTION_ICONS } from '../constants/text';
+import { useGetWalletQuery } from '../services/walletApi';
+import { useGetUserDetailsQuery } from '../../user/services/userApi';
 
 export const DashboardPage = () => {
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
-    const [balanceData, setBalanceData] = useState<BalanceData | null>(null);
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [isLoadingBalance, setIsLoadingBalance] = useState(true);
-    const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
-    const [transactionsError, setTransactionsError] = useState<string | null>(null);
 
-    // Mock data for now (will be replaced with API calls)
-    useEffect(() => {
-        // Set balance data immediately
-        setBalanceData({
-            availableBalance: 12450.0,
-            reservedBalance: 450.0,
-            currency: 'USD',
-            availableChangePercent: 2.5,
-            isReservedLocked: true,
-            lastUpdated: new Date().toISOString(),
-        });
-        setIsLoadingBalance(false);
+    // Fetch user details and wallet data
+    const { data: user, isLoading: isLoadingUser } = useGetUserDetailsQuery();
+    const { data: wallets, isLoading: isLoadingWallet } = useGetWalletQuery();
 
-        // Set transactions immediately
-        setTransactions([
-            {
-                id: '1',
-                date: '2023-02-24T10:42:00Z',
-                description: 'Netflix Subscription',
-                amount: -15.99,
-                currency: 'USD',
-                status: TransactionStatus.SUCCESS,
-                type: TransactionType.SUBSCRIPTION,
-            },
-            {
-                id: '2',
-                date: '2023-02-23T20:15:00Z',
-                description: 'John Doe Transfer',
-                amount: 500.0,
-                currency: 'USD',
-                status: TransactionStatus.PENDING,
-                type: TransactionType.TRANSFER,
-            },
-            {
-                id: '3',
-                date: '2023-02-21T15:30:00Z',
-                description: 'Server Cost',
-                amount: -120.0,
-                currency: 'USD',
-                status: TransactionStatus.FAILED,
-                type: TransactionType.SUBSCRIPTION,
-            },
-            {
-                id: '4',
-                date: '2023-02-20T11:00:00Z',
-                description: 'Upwork Earnings',
-                amount: 1200.0,
-                currency: 'USD',
-                status: TransactionStatus.SUCCESS,
-                type: TransactionType.EARNING,
-            },
-            {
-                id: '5',
-                date: '2023-02-18T09:12:00Z',
-                description: 'Spotify',
-                amount: -9.99,
-                currency: 'USD',
-                status: TransactionStatus.SUCCESS,
-                type: TransactionType.SUBSCRIPTION,
-            },
-        ]);
-        setIsLoadingTransactions(false);
-    }, []);
+    // Get the primary wallet (first wallet in the array)
+    const wallet = wallets?.[0];
+
+    // Mock transactions for now (will be replaced with getTransactionHistory API)
+    const transactions: Transaction[] = [
+        {
+            id: '1',
+            date: '2023-02-24T10:42:00Z',
+            description: 'Netflix Subscription',
+            amount: -15.99,
+            currency: 'SGD',
+            status: TransactionStatus.SUCCESS,
+            type: TransactionType.SUBSCRIPTION,
+        },
+        {
+            id: '2',
+            date: '2023-02-23T20:15:00Z',
+            description: 'John Doe Transfer',
+            amount: 500.0,
+            currency: 'SGD',
+            status: TransactionStatus.PENDING,
+            type: TransactionType.TRANSFER,
+        },
+        {
+            id: '3',
+            date: '2023-02-21T15:30:00Z',
+            description: 'Server Cost',
+            amount: -120.0,
+            currency: 'SGD',
+            status: TransactionStatus.FAILED,
+            type: TransactionType.SUBSCRIPTION,
+        },
+        {
+            id: '4',
+            date: '2023-02-20T11:00:00Z',
+            description: 'Upwork Earnings',
+            amount: 1200.0,
+            currency: 'SGD',
+            status: TransactionStatus.SUCCESS,
+            type: TransactionType.EARNING,
+        },
+        {
+            id: '5',
+            date: '2023-02-18T09:12:00Z',
+            description: 'Spotify',
+            amount: -9.99,
+            currency: 'SGD',
+            status: TransactionStatus.SUCCESS,
+            type: TransactionType.SUBSCRIPTION,
+        },
+    ];
+    const isLoadingTransactions = false;
+    const transactionsError: string | null = null;
 
     const handleTopUp = () => {
         setIsTopUpModalOpen(true);
@@ -97,9 +88,7 @@ export const DashboardPage = () => {
     };
 
     const handleRetryTransactions = () => {
-        setTransactionsError(null);
-        setIsLoadingTransactions(true);
-        // Retry logic here
+        // Will be implemented when using real transaction API
     };
 
     return (
@@ -132,29 +121,28 @@ export const DashboardPage = () => {
                 {/* Dashboard Content */}
                 <div className="container mx-auto max-w-6xl px-4 md:px-8 py-8 flex flex-col gap-8">
                     {/* Page Heading */}
-                    <DashboardHeader userName="Alex" />
+                    <DashboardHeader userName={user?.username ?? 'User'} />
 
                     {/* Balance Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {isLoadingBalance ? (
+                        {isLoadingWallet || isLoadingUser ? (
                             <>
                                 <div className="h-40 bg-slate-700 animate-pulse rounded-2xl" />
                                 <div className="h-40 bg-slate-700 animate-pulse rounded-2xl" />
                             </>
-                        ) : balanceData ? (
+                        ) : wallet ? (
                             <>
                                 <BalanceCard
                                     title={DASHBOARD_TEXT.AVAILABLE_BALANCE}
-                                    amount={balanceData.availableBalance}
-                                    currency={balanceData.currency}
-                                    changePercent={balanceData.availableChangePercent}
+                                    amount={wallet.balance}
+                                    currency={wallet.currency}
                                     variant="available"
                                 />
                                 <BalanceCard
                                     title={DASHBOARD_TEXT.RESERVED_BALANCE}
-                                    amount={balanceData.reservedBalance}
-                                    currency={balanceData.currency}
-                                    isLocked={balanceData.isReservedLocked}
+                                    amount={0}
+                                    currency={wallet.currency}
+                                    isLocked={true}
                                     variant="reserved"
                                 />
                             </>
