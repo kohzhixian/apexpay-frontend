@@ -1,3 +1,4 @@
 export { DashboardPage } from './DashboardPage';
-export { TransferPage } from './TransferPage';
 export { TransactionHistoryPage } from './TransactionHistoryPage';
+export { WalletsPage } from './WalletsPage';
+export { WalletDetailsPage } from './WalletDetailsPage';
