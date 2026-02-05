@@ -113,12 +113,12 @@ export const LoadingSkeleton = ({
         .join(' ');
 
     /**
-     * Renders a single skeleton element
+     * Renders a single skeleton element with shimmer effect
      */
     const renderSkeleton = (index: number) => (
         <div
             key={index}
-            className={`animate-pulse bg-slate-700/50 ${variantStyles[variant]} ${dimensionClasses} ${className}`}
+            className={`shimmer ${variantStyles[variant]} ${dimensionClasses} ${className}`}
             style={style}
             data-testid="loading-skeleton"
             data-variant={variant}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface TransactionDetail {
     /** Label for the detail row */
@@ -77,6 +77,16 @@ export const SuccessModal = ({
     footerLink,
 }: SuccessModalProps) => {
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (copyTimeoutRef.current) {
+                clearTimeout(copyTimeoutRef.current);
+            }
+        };
+    }, []);
 
     /**
      * Copies a value to clipboard and shows visual feedback
@@ -86,7 +96,12 @@ export const SuccessModal = ({
     const handleCopy = (value: string, label: string) => {
         navigator.clipboard.writeText(value);
         setCopiedId(label);
-        setTimeout(() => setCopiedId(null), 2000);
+
+        // Clear any existing timeout before setting a new one
+        if (copyTimeoutRef.current) {
+            clearTimeout(copyTimeoutRef.current);
+        }
+        copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
     };
 
     /**
@@ -105,13 +120,13 @@ export const SuccessModal = ({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            className="modal-backdrop animate-in fade-in duration-200"
             onClick={handleBackdropClick}
             data-testid="success-modal-backdrop"
         >
             {/* Main Modal */}
             <div
-                className="relative w-full max-w-[520px] bg-[#1e293b] rounded-2xl shadow-2xl border border-[#314368] overflow-hidden animate-in zoom-in-95 duration-300"
+                className="modal-dark max-w-[520px] animate-in zoom-in-95 duration-300"
                 data-testid="success-modal"
             >
                 {/* Success Icon & Title */}
@@ -220,7 +235,7 @@ export const SuccessModal = ({
                 <div className="p-6 pt-4 flex flex-col gap-3">
                     <button
                         onClick={primaryAction.onClick}
-                        className="w-full flex items-center justify-center h-12 bg-primary text-white rounded-xl font-semibold hover:bg-[#2563eb] transition-all shadow-lg shadow-primary/20"
+                        className="btn-primary w-full h-12"
                         data-testid="success-modal-primary-action"
                     >
                         {primaryAction.label}
@@ -228,7 +243,7 @@ export const SuccessModal = ({
                     {secondaryAction && (
                         <button
                             onClick={secondaryAction.onClick}
-                            className="w-full flex items-center justify-center h-12 border border-[#314368] text-white rounded-xl font-medium hover:bg-[#314368]/30 transition-all gap-2"
+                            className="btn-secondary w-full h-12 gap-2"
                             data-testid="success-modal-secondary-action"
                         >
                             {secondaryAction.icon && (

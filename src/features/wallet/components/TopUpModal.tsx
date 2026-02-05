@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { TopUpProcessingModal } from './TopUpProcessingModal';
 import { TopUpSuccessModal } from './TopUpSuccessModal';
-import { MODAL_TEXT, CURRENCIES, ICONS, TOP_UP_QUICK_AMOUNTS, PAYMENT_METHODS_TEXT } from '../constants/text';
-import { AmountInput, Modal, ModalHeader, ModalBody, ModalFooter } from '../../../components/ui';
+import { MODAL_TEXT, CURRENCIES, ICONS, TOP_UP_QUICK_AMOUNTS, PAYMENT_METHODS_TEXT, ERROR_MODAL_TEXT } from '../constants/text';
+import { AmountInput, Modal, ModalHeader, ModalBody, ModalFooter, LoadingSkeleton, ErrorModal } from '../../../components/ui';
 import { topUpSchema, type TopUpFormData } from '../../../schemas';
 import { useTopUpWalletMutation, useGetWalletQuery } from '../services/walletApi';
 import { useGetPaymentMethodsQuery } from '../../payment/services/paymentMethodApi';
@@ -25,6 +25,8 @@ interface TopUpModalProps {
 export const TopUpModal = ({ isOpen, onClose, walletId }: TopUpModalProps) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [showError, setShowError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const [newBalance, setNewBalance] = useState(0);
     const [transactionId, setTransactionId] = useState('');
     const [timestamp, setTimestamp] = useState('');
@@ -98,6 +100,8 @@ export const TopUpModal = ({ isOpen, onClose, walletId }: TopUpModalProps) => {
             reset();
             setIsApiComplete(false);
             setIsMinTimeElapsed(false);
+            setShowError(false);
+            setErrorMessage('');
         }
     }, [isOpen, reset]);
 
@@ -123,9 +127,12 @@ export const TopUpModal = ({ isOpen, onClose, walletId }: TopUpModalProps) => {
         }
     }, [isApiComplete, isMinTimeElapsed, isProcessing]);
 
-    const handleQuickAmount = (value: number) => {
+    /**
+     * Handles quick amount button clicks
+     */
+    const handleQuickAmount = useCallback((value: number) => {
         setValue('amount', value.toString(), { shouldValidate: true });
-    };
+    }, [setValue]);
 
     const onSubmit = async (data: TopUpFormData) => {
         if (!targetWallet) {
@@ -164,6 +171,15 @@ export const TopUpModal = ({ isOpen, onClose, walletId }: TopUpModalProps) => {
         } catch (error) {
             console.error('Top up failed:', error);
             setIsProcessing(false);
+
+            // Extract error message from RTK Query error response
+            const errorData = error as { data?: { message?: string; error?: string }; error?: string };
+            const message = errorData?.data?.message
+                || errorData?.data?.error
+                || errorData?.error
+                || 'An unexpected error occurred. Please try again.';
+            setErrorMessage(message);
+            setShowError(true);
         }
     };
 
@@ -179,6 +195,23 @@ export const TopUpModal = ({ isOpen, onClose, walletId }: TopUpModalProps) => {
         setShowSuccess(false);
         onClose();
         reset();
+    };
+
+    /**
+     * Handles closing the error modal
+     */
+    const handleErrorClose = () => {
+        setShowError(false);
+        setErrorMessage('');
+    };
+
+    /**
+     * Handles retry after error - closes error modal and resubmits
+     */
+    const handleRetry = () => {
+        setShowError(false);
+        setErrorMessage('');
+        handleSubmit(onSubmit)();
     };
 
     const selectedMethod = paymentMethods.find((m) => m.id === selectedPaymentMethodId);
@@ -261,21 +294,8 @@ export const TopUpModal = ({ isOpen, onClose, walletId }: TopUpModalProps) => {
                                 render={({ field }) => (
                                     <div className="grid grid-cols-1 gap-3">
                                         {isLoadingPaymentMethods ? (
-                                            // Loading skeleton
-                                            <>
-                                                {[1, 2].map((i) => (
-                                                    <div
-                                                        key={i}
-                                                        className="flex items-center p-4 rounded-xl border-2 border-[#314368] bg-[#101623] animate-pulse"
-                                                    >
-                                                        <div className="w-10 h-10 rounded-full bg-[#222f49] mr-4" />
-                                                        <div className="flex-1">
-                                                            <div className="h-4 bg-[#222f49] rounded w-32 mb-2" />
-                                                            <div className="h-3 bg-[#222f49] rounded w-24" />
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </>
+                                            // Loading skeleton using reusable LoadingSkeleton component
+                                            <LoadingSkeleton variant="card" count={2} height="72px" gap="12px" />
                                         ) : paymentMethods.length === 0 ? (
                                             // Empty state
                                             <div className="text-center py-6 text-[#90a4cb]">
@@ -367,6 +387,35 @@ export const TopUpModal = ({ isOpen, onClose, walletId }: TopUpModalProps) => {
                 transactionId={transactionId || 'N/A'}
                 timestamp={timestamp}
                 onClose={handleSuccessClose}
+            />
+
+            {/* Error Modal */}
+            <ErrorModal
+                isOpen={showError}
+                onClose={handleErrorClose}
+                title={ERROR_MODAL_TEXT.TOP_UP_FAILED_TITLE}
+                subtitle={errorMessage}
+                details={[
+                    {
+                        label: ERROR_MODAL_TEXT.AMOUNT_LABEL,
+                        value: `$${amount || '0.00'}`,
+                        currency: currency,
+                        icon: ICONS.ACCOUNT_BALANCE_WALLET,
+                    },
+                ]}
+                primaryAction={{
+                    label: ERROR_MODAL_TEXT.TRY_AGAIN,
+                    onClick: handleRetry,
+                }}
+                secondaryAction={{
+                    label: ERROR_MODAL_TEXT.CLOSE,
+                    onClick: handleErrorClose,
+                }}
+                footerText="If this issue persists, please"
+                supportLink={{
+                    text: 'contact support',
+                    href: '#',
+                }}
             />
         </>
     );

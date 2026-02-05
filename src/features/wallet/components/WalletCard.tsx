@@ -5,6 +5,7 @@ import { MiniBarChart } from './MiniBarChart';
 import { WALLETS_TEXT, WALLET_CARD_TEXT } from '../constants/text';
 import { formatCurrency } from '../utils/formatters';
 import { DropdownMenu, type DropdownMenuItem } from '../../../components/ui/DropdownMenu';
+import { Card } from '../../../components/ui/Card';
 
 interface WalletCardProps {
     /** Wallet data to display */
@@ -69,12 +70,12 @@ export const WalletCard = ({ wallet, onEditName, onTopUp, onTransfer }: WalletCa
     ], [wallet.id, onTopUp, onTransfer, onEditName, navigate]);
 
     return (
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl rounded-xl p-6 hover:border-white/20 transition-all group flex flex-col gap-6">
+        <Card variant="glass" className="hover:border-white/20 transition-all group flex flex-col gap-6">
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
                     <div
-                        className={`size-10 rounded-xl flex items-center justify-center ${iconColorClasses[wallet.colorVariant]}`}
+                        className={`icon-badge icon-badge-md rounded-xl ${iconColorClasses[wallet.colorVariant]}`}
                     >
                         <span className="material-symbols-outlined">{wallet.icon}</span>
                     </div>
@@ -105,6 +106,6 @@ export const WalletCard = ({ wallet, onEditName, onTopUp, onTransfer }: WalletCa
 
             {/* Mini Chart */}
             <MiniBarChart data={wallet.chartData} colorVariant={wallet.colorVariant} />
-        </div>
+        </Card>
     );
 };

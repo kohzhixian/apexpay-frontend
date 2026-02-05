@@ -506,6 +506,23 @@ export const PAYMENT_METHODS_TEXT = {
     NO_METHODS_AVAILABLE: 'No payment methods available',
 } as const;
 
+// Error Modal
+export const ERROR_MODAL_TEXT = {
+    // Top Up Errors
+    TOP_UP_FAILED_TITLE: 'Top Up Failed',
+    TOP_UP_FAILED_SUBTITLE: 'We couldn\'t process your top up. Please check your payment method and try again.',
+    // Transfer Errors
+    TRANSFER_FAILED_TITLE: 'Transfer Failed',
+    TRANSFER_FAILED_SUBTITLE: 'We couldn\'t complete your transfer. Please try again or contact support.',
+    // Common
+    TRY_AGAIN: 'Try Again',
+    CLOSE: 'Close',
+    CONTACT_SUPPORT_FOOTER: 'If this issue persists, please contact support.',
+    ERROR_CODE_LABEL: 'Error Code',
+    TIMESTAMP_LABEL: 'Timestamp',
+    AMOUNT_LABEL: 'Amount',
+} as const;
+
 // Wallet Details Transaction Table
 export const WALLET_TRANSACTION_TABLE_TEXT = {
     TRANSACTION: 'Transaction',

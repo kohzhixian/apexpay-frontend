@@ -1,136 +1,154 @@
-import { useEffect } from 'react';
-
-interface ProcessingStep {
-    /** Unique step ID */
-    id: string;
-    /** Step title */
-    title: string;
-    /** Step description */
-    description: string;
-    /** Step status */
-    status: 'pending' | 'in-progress' | 'completed';
-    /** Optional progress percentage (0-100) */
-    progress?: number;
-    /** Optional badges to display */
-    badges?: string[];
-    /** Optional duration display */
-    duration?: string;
-}
-
-interface LogEntry {
-    /** Timestamp string */
-    timestamp: string;
-    /** Log status */
-    status: 'OK' | 'INFO' | 'PROC' | 'ERROR';
-    /** Log message */
-    message: string;
-}
+import { useEffect, useState, useRef } from 'react';
 
 interface ProcessingModalProps {
     /** Whether the modal is open */
     isOpen: boolean;
-    /** Modal title */
+    /** Modal title displayed at top (uppercase) */
     title: string;
-    /** Modal subtitle */
-    subtitle?: string;
+    /** Main heading text */
+    heading: string;
+    /** Subtitle below heading */
+    subtitle: string;
     /** Amount being processed */
     amount: string;
     /** Currency code */
     currency: string;
-    /** Processing steps to display */
-    steps?: ProcessingStep[];
-    /** Log entries to display */
-    logs?: LogEntry[];
-    /** Optional header badges */
-    headerBadges?: string[];
-    /** Optional transaction ID display */
+    /** Icon for source node (material icon name) */
+    sourceIcon: string;
+    /** Label for source node */
+    sourceLabel: string;
+    /** Icon for destination node (material icon name) */
+    destinationIcon: string;
+    /** Label for destination node */
+    destinationLabel: string;
+    /** Secondary info text (payment method, recipient email, etc.) */
+    secondaryInfo: string;
+    /** Label for secondary info (e.g., "To", "Via") */
+    secondaryInfoLabel: string;
+    /** Icon for secondary info chip */
+    secondaryInfoIcon: string;
+    /** Current phase name to display */
+    phaseName: string;
+    /** Text below progress bar */
+    progressSubtext: string;
+    /** Animation duration in milliseconds (default 5000) */
+    animationDurationMs?: number;
+    /** Callback when processing animation completes */
+    onComplete: () => void;
+    /** Transaction ID to display in footer */
     transactionId?: string;
-    /** Callback when processing completes (for animation timing) */
-    onComplete?: () => void;
+    /** Timeline steps to display */
+    timelineSteps?: TimelineStep[];
+}
+
+interface TimelineStep {
+    /** Step title */
+    title: string;
+    /** Step description */
+    description: string;
+    /** Duration text to display */
+    duration: string;
+    /** Step status */
+    status: 'completed' | 'in-progress' | 'pending';
 }
 
 /**
  * A reusable processing modal component for displaying transaction progress.
- * Supports configurable title, subtitle, amount, currency, processing steps
- * with status indicators, log entries, header badges, and transaction ID.
- *
- * **Validates: Requirements 3.1, 3.2, 3.3**
+ * Shows a visualizer with source → destination animation, progress bar,
+ * timeline steps, and transaction details.
  */
 export const ProcessingModal = ({
     isOpen,
     title,
+    heading,
     subtitle,
     amount,
     currency,
-    steps = [],
-    logs = [],
-    headerBadges = [],
-    transactionId,
+    sourceIcon,
+    sourceLabel,
+    destinationIcon,
+    destinationLabel,
+    secondaryInfo,
+    secondaryInfoLabel,
+    secondaryInfoIcon,
+    phaseName,
+    progressSubtext,
+    animationDurationMs = 5000,
     onComplete,
+    transactionId = 'ID: #TXN-9982-ALPHA',
+    timelineSteps,
 }: ProcessingModalProps) => {
-    // Call onComplete when all steps are completed
+    const [progress, setProgress] = useState(0);
+    const hasCalledOnComplete = useRef(false);
+
+    // Default timeline steps if none provided
+    const defaultTimelineSteps: TimelineStep[] = [
+        {
+            title: 'Contacting Bank Gateway',
+            description: 'Handshake established with API',
+            duration: '120ms',
+            status: 'completed',
+        },
+        {
+            title: 'Verifying Funds Availability',
+            description: 'Pre-authorization token received',
+            duration: '45ms',
+            status: 'completed',
+        },
+        {
+            title: 'Preparing Ledger Entry',
+            description: 'Writing to distributed node shard #4...',
+            duration: 'PENDING',
+            status: 'in-progress',
+        },
+    ];
+
+    const steps = timelineSteps || defaultTimelineSteps;
+
+    // Reset state when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setProgress(0);
+            hasCalledOnComplete.current = false;
+        }
+    }, [isOpen]);
+
+    // Progress animation
     useEffect(() => {
         if (!isOpen) return;
 
-        const allCompleted = steps.length > 0 && steps.every((step) => step.status === 'completed');
-        if (allCompleted) {
-            onComplete?.();
-        }
-    }, [isOpen, steps, onComplete]);
+        const intervalMs = animationDurationMs / 100;
+        const interval = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 100) {
+                    clearInterval(interval);
+                    if (!hasCalledOnComplete.current) {
+                        hasCalledOnComplete.current = true;
+                        onComplete();
+                    }
+                    return 100;
+                }
+                return prev + 1;
+            });
+        }, intervalMs);
+
+        return () => clearInterval(interval);
+    }, [isOpen, animationDurationMs, onComplete]);
 
     if (!isOpen) return null;
 
     /**
-     * Returns the appropriate icon for a step based on its status
-     * @param status - The step status
-     * @returns Material icon name
+     * Returns the appropriate icon for a timeline step based on its status
      */
-    const getStepIcon = (status: ProcessingStep['status']): string => {
+    const getStepIcon = (status: TimelineStep['status']): string => {
         switch (status) {
             case 'completed':
-                return 'check';
+                return 'check_circle';
             case 'in-progress':
-                return 'sync';
+                return 'progress_activity';
             case 'pending':
             default:
-                return 'schedule';
-        }
-    };
-
-    /**
-     * Returns the appropriate styling classes for a step icon based on status
-     * @param status - The step status
-     * @returns Tailwind CSS classes
-     */
-    const getStepIconClasses = (status: ProcessingStep['status']): string => {
-        switch (status) {
-            case 'completed':
-                return 'bg-[#10B981]/10 border border-[#10B981] text-[#10B981]';
-            case 'in-progress':
-                return 'bg-[#3B82F6] text-white';
-            case 'pending':
-            default:
-                return 'bg-white/5 border border-white/10 text-[#64748B]';
-        }
-    };
-
-    /**
-     * Returns the appropriate styling classes for a log entry status
-     * @param status - The log status
-     * @returns Tailwind CSS classes
-     */
-    const getLogStatusClasses = (status: LogEntry['status']): string => {
-        switch (status) {
-            case 'OK':
-                return 'text-[#10B981]/70';
-            case 'INFO':
-                return 'text-[#3B82F6]';
-            case 'PROC':
-                return 'text-[#3B82F6] animate-pulse';
-            case 'ERROR':
-                return 'text-[#EF4444]';
-            default:
-                return 'text-[#64748B]';
+                return 'radio_button_unchecked';
         }
     };
 
@@ -163,230 +181,163 @@ export const ProcessingModal = ({
 
             {/* Main Modal */}
             <div
-                className="relative w-full max-w-[600px] bg-[#1e293b]/40 backdrop-blur-[24px] border border-white/8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-xl overflow-hidden"
+                className="relative w-full max-w-[600px] bg-[#1e293b]/40 backdrop-blur-[24px] border border-[#3B82F6]/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-xl overflow-hidden"
                 data-testid="processing-modal"
             >
-                {/* Header */}
-                <div className="p-8 border-b border-white/5">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h1
-                                className="text-white text-xl font-semibold tracking-tight"
-                                data-testid="processing-modal-title"
-                            >
-                                {title}
-                            </h1>
-                            {subtitle && (
-                                <p
-                                    className="text-[#64748B] text-[10px] font-mono mt-1 uppercase tracking-widest"
-                                    data-testid="processing-modal-subtitle"
-                                >
-                                    {subtitle}
-                                </p>
-                            )}
+                {/* Header with Visualizer */}
+                <div className="p-8 pb-4 flex flex-col items-center border-b border-[#314368]/50 bg-[#141c2c]">
+                    <h1
+                        className="text-[#90a4cb] text-sm font-medium tracking-wide uppercase mb-8"
+                        data-testid="processing-modal-title"
+                    >
+                        {title}
+                    </h1>
+
+                    {/* Two-Phase Visualizer */}
+                    <div className="w-full flex items-center justify-between px-4 mb-8">
+                        {/* Source Node */}
+                        <div className="flex flex-col items-center gap-3 relative z-10">
+                            <div className="w-14 h-14 rounded-full bg-[#182234] border-2 border-primary flex items-center justify-center text-primary shadow-lg">
+                                <span className="material-symbols-outlined text-[28px]">{sourceIcon}</span>
+                            </div>
+                            <span className="text-white text-xs font-medium">{sourceLabel}</span>
                         </div>
-                        <div className="text-right">
-                            {transactionId && (
-                                <p
-                                    className="text-[#64748B] text-[10px] uppercase font-mono tracking-tighter"
-                                    data-testid="processing-modal-transaction-id"
-                                >
-                                    {transactionId}
-                                </p>
-                            )}
-                            <p
-                                className="text-white text-sm font-semibold mt-1"
-                                data-testid="processing-modal-amount"
-                            >
-                                {amount} {currency}
-                            </p>
+
+                        {/* Connection Line */}
+                        <div className="flex-1 h-[2px] bg-[#314368] mx-[-10px] relative -top-4">
+                            <div
+                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-blue-300 h-full rounded-full shadow-[0_0_8px_rgba(61,122,245,0.8)] transition-all duration-300"
+                                style={{ width: `${progress * 0.75}%` }}
+                            ></div>
+                        </div>
+
+                        {/* Destination Node */}
+                        <div className="flex flex-col items-center gap-3 relative z-10">
+                            <div className="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/40 border-2 border-white/10">
+                                <span className="material-symbols-outlined text-[28px] animate-pulse">
+                                    {destinationIcon}
+                                </span>
+                            </div>
+                            <span className="text-white text-xs font-medium">{destinationLabel}</span>
                         </div>
                     </div>
 
-                    {/* Header Badges */}
-                    {headerBadges.length > 0 && (
-                        <div
-                            className="flex gap-2 mt-4"
-                            data-testid="processing-modal-header-badges"
+                    <div className="text-center space-y-2 mb-2">
+                        <p
+                            className="text-white text-2xl font-bold leading-tight tracking-tight"
+                            data-testid="processing-modal-heading"
                         >
-                            {headerBadges.map((badge) => (
-                                <span
-                                    key={badge}
-                                    className="text-[9px] bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/20 px-2 py-0.5 rounded font-mono"
-                                    data-testid={`header-badge-${badge}`}
-                                >
-                                    {badge}
-                                </span>
-                            ))}
-                        </div>
-                    )}
+                            {heading}
+                        </p>
+                        <p className="text-[#90a4cb] text-sm">{subtitle}</p>
+                    </div>
                 </div>
 
-                {/* Steps Timeline */}
-                {steps.length > 0 && (
-                    <div className="p-8 space-y-2" data-testid="processing-modal-steps">
-                        <div className="grid grid-cols-[40px_1fr] gap-x-6">
-                            {steps.map((step, index) => (
-                                <div key={step.id} className="contents">
-                                    {/* Icon Column */}
-                                    <div className="flex flex-col items-center">
-                                        <div
-                                            className={`size-10 rounded-full flex items-center justify-center ${getStepIconClasses(step.status)}`}
-                                            data-testid={`step-icon-${step.id}`}
-                                        >
-                                            {step.status === 'in-progress' ? (
-                                                <span className="material-symbols-outlined text-[22px] animate-spin">
-                                                    {getStepIcon(step.status)}
-                                                </span>
-                                            ) : (
-                                                <span className="material-symbols-outlined text-[20px]">
-                                                    {getStepIcon(step.status)}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {index < steps.length - 1 && (
-                                            <div
-                                                className={`w-px h-10 ${step.status === 'completed'
-                                                    ? 'bg-[#10B981]/30'
-                                                    : 'bg-white/10'
-                                                    }`}
-                                            ></div>
-                                        )}
-                                    </div>
-
-                                    {/* Content Column */}
-                                    <div
-                                        className={`flex flex-col py-1 ${index < steps.length - 1 ? 'pb-6' : ''}`}
-                                        data-testid={`step-content-${step.id}`}
-                                    >
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-3">
-                                                <p
-                                                    className={`text-sm font-medium ${step.status === 'pending'
-                                                        ? 'text-white/40'
-                                                        : 'text-white'
-                                                        }`}
-                                                    data-testid={`step-title-${step.id}`}
-                                                >
-                                                    {step.title}
-                                                </p>
-                                                {step.status === 'in-progress' && (
-                                                    <span className="text-[#3B82F6] text-[10px] font-mono animate-pulse">
-                                                        SYNCING
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {step.duration && (
-                                                <span
-                                                    className={`text-xs font-mono ${step.status === 'completed'
-                                                        ? 'text-emerald-400'
-                                                        : step.status === 'in-progress'
-                                                            ? 'text-primary animate-pulse'
-                                                            : 'text-[#64748B]'
-                                                        }`}
-                                                    data-testid={`step-duration-${step.id}`}
-                                                >
-                                                    {step.duration}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p
-                                            className={`text-xs mt-1 ${step.status === 'pending'
-                                                ? 'text-[#64748B]/40'
-                                                : 'text-[#64748B]'
-                                                }`}
-                                            data-testid={`step-description-${step.id}`}
-                                        >
-                                            {step.description}
-                                        </p>
-
-                                        {/* Step Badges */}
-                                        {step.badges && step.badges.length > 0 && (
-                                            <div
-                                                className="flex gap-2 mt-3"
-                                                data-testid={`step-badges-${step.id}`}
-                                            >
-                                                {step.badges.map((badge) => (
-                                                    <span
-                                                        key={badge}
-                                                        className="text-[9px] bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20 px-2 py-0.5 rounded font-mono"
-                                                    >
-                                                        {badge}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Progress Bar */}
-                                        {step.status === 'in-progress' &&
-                                            step.progress !== undefined && (
-                                                <div
-                                                    className="mt-4 bg-black/20 rounded-lg p-3 border border-white/5"
-                                                    data-testid={`step-progress-${step.id}`}
-                                                >
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span className="text-[10px] text-[#64748B] font-mono">
-                                                            PEER_HANDSHAKE
-                                                        </span>
-                                                        <span className="text-[10px] text-[#3B82F6] font-mono">
-                                                            {step.progress}%
-                                                        </span>
-                                                    </div>
-                                                    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                                                        <div
-                                                            className="bg-[#3B82F6] h-full rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-300"
-                                                            style={{ width: `${step.progress}%` }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                {/* Transaction Chips */}
+                <div className="flex justify-center gap-3 py-4 bg-[#182234]">
+                    <div className="chip">
+                        <span className="material-symbols-outlined text-primary text-[18px]">add_circle</span>
+                        <p
+                            className="text-sm tracking-tight"
+                            data-testid="processing-modal-amount"
+                        >
+                            <span className="text-[#90a4cb] font-medium">Amount: </span>
+                            <span className="text-white font-semibold font-mono">${amount} {currency}</span>
+                        </p>
                     </div>
-                )}
+                    <div className="chip">
+                        <span className="material-symbols-outlined text-[#90a4cb] text-[18px]">
+                            {secondaryInfoIcon}
+                        </span>
+                        <p
+                            className="text-sm"
+                            data-testid="processing-modal-secondary-info"
+                        >
+                            <span className="text-[#90a4cb] font-medium">{secondaryInfoLabel}: </span>
+                            <span className="text-white font-medium">{secondaryInfo}</span>
+                        </p>
+                    </div>
+                </div>
 
-                {/* Log Console */}
-                {logs.length > 0 && (
-                    <div
-                        className="p-6 bg-black/30 border-t border-white/5 font-mono text-[11px]"
-                        data-testid="processing-modal-logs"
-                    >
-                        <div className="flex flex-col gap-1.5 text-[#64748B]">
-                            {logs.map((entry, index) => (
+                {/* Progress Bar */}
+                <div className="px-8 py-4 bg-[#182234]">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex gap-6 justify-between items-end">
+                            <p className="text-white text-sm font-semibold">{phaseName}</p>
+                            <p className="text-primary text-xs font-mono">{progress}%</p>
+                        </div>
+                        <div className="rounded-full bg-[#222f49] overflow-hidden h-2">
+                            <div
+                                className="h-full rounded-full bg-primary shadow-[0_0_10px_rgba(61,122,245,0.5)] transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                            ></div>
+                        </div>
+                        <p className="text-[#90a4cb] text-xs font-normal">{progressSubtext}</p>
+                    </div>
+                </div>
+
+                {/* Timeline */}
+                <div className="px-8 py-2 bg-[#182234]">
+                    <div className="grid grid-cols-[32px_1fr] gap-x-3">
+                        {steps.map((step, index) => (
+                            <div key={index} className="contents">
+                                {/* Icon Column */}
+                                <div className="flex flex-col items-center gap-1 pt-1">
+                                    {step.status === 'completed' ? (
+                                        <div className="text-primary bg-primary/10 rounded-full p-0.5">
+                                            <span className="material-symbols-outlined text-[20px]">
+                                                {getStepIcon(step.status)}
+                                            </span>
+                                        </div>
+                                    ) : step.status === 'in-progress' ? (
+                                        <div className="text-white bg-white/5 rounded-full p-0.5 animate-spin">
+                                            <span className="material-symbols-outlined text-[20px]">
+                                                {getStepIcon(step.status)}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="text-[#90a4cb] bg-[#222f49] rounded-full p-0.5">
+                                            <span className="material-symbols-outlined text-[20px]">
+                                                {getStepIcon(step.status)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {index < steps.length - 1 && (
+                                        <div className="w-[1px] bg-[#314368] h-full grow my-1"></div>
+                                    )}
+                                </div>
+
+                                {/* Content Column */}
                                 <div
-                                    key={index}
-                                    className="flex gap-3"
-                                    data-testid={`log-entry-${index}`}
+                                    className={`flex flex-1 flex-col ${index < steps.length - 1 ? 'pb-6' : 'pb-2'} ${index === 0 ? 'pt-1' : 'pt-0.5'}`}
                                 >
-                                    <span className="opacity-40">[{entry.timestamp}]</span>
-                                    <span className={getLogStatusClasses(entry.status)}>
-                                        {entry.status}
-                                    </span>
-                                    <span
-                                        className={entry.status === 'PROC' ? 'text-white/60' : ''}
-                                    >
-                                        {entry.message}
-                                    </span>
+                                    <div className="flex justify-between items-start">
+                                        <p className="text-white text-sm font-medium leading-none">{step.title}</p>
+                                        <span
+                                            className={`text-xs font-mono ${step.status === 'completed'
+                                                ? 'text-emerald-400'
+                                                : step.status === 'in-progress'
+                                                    ? 'text-primary animate-pulse'
+                                                    : 'text-[#90a4cb]'
+                                                }`}
+                                        >
+                                            {step.duration}
+                                        </span>
+                                    </div>
+                                    <p className="text-[#90a4cb] text-xs mt-1">{step.description}</p>
                                 </div>
-                            ))}
-                        </div>
+                            </div>
+                        ))}
                     </div>
-                )}
+                </div>
 
                 {/* Footer */}
-                <div className="p-8 pt-4">
-                    <button
-                        className="w-full flex items-center justify-center gap-3 bg-white/5 text-[#64748B] py-4 rounded-xl font-semibold cursor-not-allowed border border-[#3B82F6]/40"
-                        disabled
-                    >
-                        <span className="material-symbols-outlined text-[20px]">lock</span>
-                        Awaiting Network Confirmation
-                    </button>
-                    <p className="text-center text-[10px] text-[#64748B]/60 mt-4 uppercase tracking-[0.15em] font-medium">
-                        Atomic swap: transaction is non-reversible
-                    </p>
+                <div className="bg-[#101623] px-8 py-4 border-t border-[#314368] flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[#90a4cb]">
+                        <span className="material-symbols-outlined text-[16px]">lock</span>
+                        <span className="text-[11px] font-mono uppercase tracking-wider">AES-256 Encrypted</span>
+                    </div>
+                    <span className="text-[#90a4cb] text-[11px] font-mono">{transactionId}</span>
                 </div>
             </div>
         </div>

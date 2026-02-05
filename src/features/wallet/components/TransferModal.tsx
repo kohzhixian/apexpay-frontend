@@ -508,6 +508,7 @@ export const TransferModal = ({
                 isOpen={isProcessing}
                 amount={amount || '0.00'}
                 currency={sourceWallet?.currency ?? 'SGD'}
+                recipient={recipient || 'Recipient'}
                 onComplete={handleProcessingComplete}
             />
 

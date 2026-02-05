@@ -282,3 +282,13 @@ export interface CreateWalletFormData {
     currency: string;
     initialBalance: number;
 }
+
+/** Response for monthly summary stats */
+export interface GetMonthlySummaryResponse {
+    /** Total credited amount for the month */
+    income: number;
+    /** Total debited amount for the month */
+    spending: number;
+    /** Currency of the amounts */
+    currency: CurrencyEnum;
+}

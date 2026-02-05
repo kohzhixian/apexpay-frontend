@@ -1,5 +1,6 @@
 import { WALLETS_TEXT } from '../constants/text';
 import { formatCurrency } from '../utils/formatters';
+import { Card } from '../../../components/ui/Card';
 
 interface NetWorthCardProps {
     /** Total net worth amount */
@@ -25,10 +26,10 @@ export const NetWorthCard = ({
     const isPositiveGrowth = monthlyGrowth >= 0;
 
     return (
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-8 border-l-4 border-l-blue-500">
+        <Card variant="glass" className="flex flex-col md:flex-row items-center justify-between gap-8 border-l-4 border-l-blue-500">
             {/* Net Worth */}
             <div className="flex items-center gap-6">
-                <div className="size-14 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500">
+                <div className="icon-badge icon-badge-lg bg-blue-500/20 text-blue-500">
                     <span className="material-symbols-outlined text-3xl">account_balance</span>
                 </div>
                 <div className="flex flex-col">
@@ -66,6 +67,6 @@ export const NetWorthCard = ({
                     </span>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 };

@@ -1,5 +1,6 @@
 import { formatCurrency } from '../utils/formatters';
 import { BALANCE_CARD_TEXT } from '../constants/text';
+import { Card } from '../../../components/ui/Card';
 
 export interface BalanceCardProps {
     title: string;
@@ -22,18 +23,9 @@ export const BalanceCard = ({
     const isPositiveChange = changePercent !== undefined && changePercent >= 0;
 
     return (
-        <div className="relative overflow-hidden rounded-2xl p-8 flex flex-col gap-4 border border-white/5 bg-[#2d3748] backdrop-blur-xl shadow-xl group">
-            <div
-                className={`absolute ${variant === 'available' ? '-top-10 -right-10' : '-bottom-10 -left-10'
-                    } w-40 h-40 ${variant === 'available' ? 'bg-blue-500/20' : 'bg-purple-500/10'
-                    } rounded-full blur-3xl pointer-events-none ${variant === 'available'
-                        ? 'group-hover:bg-blue-500/30'
-                        : 'group-hover:bg-purple-500/20'
-                    } transition-all duration-500`}
-            />
-
-            <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-2 text-[#8fa6cc]">
+        <Card variant="dark" className="flex flex-col justify-between h-[160px]">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-400">
                     <span className="material-symbols-outlined">
                         {variant === 'available' ? 'account_balance_wallet' : 'lock'}
                     </span>
@@ -75,11 +67,11 @@ export const BalanceCard = ({
                 ) : null}
             </div>
 
-            <div className="flex flex-col relative z-10">
-                <span className="text-5xl font-black text-white tracking-tight">
+            <div className="flex flex-col">
+                <span className="text-4xl font-bold text-white tracking-tight">
                     {formattedAmount}
                 </span>
             </div>
-        </div>
+        </Card>
     );
 };

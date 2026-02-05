@@ -92,7 +92,7 @@ describe('LoadingSkeleton Property Tests', () => {
             );
         }, 30000);
 
-        it('should apply animate-pulse class for shimmer effect', async () => {
+        it('should apply shimmer class for loading animation effect', async () => {
             await fc.assert(
                 fc.asyncProperty(variantArbitrary, async (variant) => {
                     cleanup();
@@ -101,13 +101,13 @@ describe('LoadingSkeleton Property Tests', () => {
                     const skeleton = screen.getByTestId('loading-skeleton');
 
                     // Verify the shimmer animation class is applied
-                    expect(skeleton.className).toContain('animate-pulse');
+                    expect(skeleton.className).toContain('shimmer');
                 }),
                 { numRuns: 100 }
             );
         }, 30000);
 
-        it('should apply background color class for skeleton appearance', async () => {
+        it('should NOT apply bg-slate-700/50 class (shimmer handles background)', async () => {
             await fc.assert(
                 fc.asyncProperty(variantArbitrary, async (variant) => {
                     cleanup();
@@ -115,8 +115,8 @@ describe('LoadingSkeleton Property Tests', () => {
 
                     const skeleton = screen.getByTestId('loading-skeleton');
 
-                    // Verify the background color class is applied
-                    expect(skeleton.className).toContain('bg-slate-700/50');
+                    // Verify shimmer class is applied (which handles background via CSS)
+                    expect(skeleton.className).toContain('shimmer');
                 }),
                 { numRuns: 100 }
             );
@@ -355,7 +355,7 @@ describe('LoadingSkeleton Property Tests', () => {
                         skeletons.forEach((skeleton) => {
                             expect(skeleton).toHaveAttribute('data-variant', variant);
                             expect(skeleton.className).toContain(expectedShapeClass);
-                            expect(skeleton.className).toContain('animate-pulse');
+                            expect(skeleton.className).toContain('shimmer');
                         });
                     }
                 ),

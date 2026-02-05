@@ -64,11 +64,11 @@ export const EditWalletNameModal = ({
             />
 
             {/* Modal */}
-            <div className="relative w-full max-w-[480px] rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 bg-[rgba(15,23,42,0.85)] backdrop-blur-xl border border-white/10">
+            <div className="modal-glass max-w-[480px] animate-in fade-in zoom-in-95 duration-300">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-white/5">
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <div className="icon-badge icon-badge-md bg-blue-500/10">
                             <span className="material-symbols-outlined text-blue-500 text-[22px]">edit</span>
                         </div>
                         <h2 className="text-xl font-semibold text-white">{EDIT_WALLET_MODAL_TEXT.TITLE}</h2>
@@ -104,7 +104,7 @@ export const EditWalletNameModal = ({
                             onKeyDown={handleKeyDown}
                             maxLength={MAX_WALLET_NAME_LENGTH}
                             placeholder={EDIT_WALLET_MODAL_TEXT.WALLET_NAME_PLACEHOLDER}
-                            className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-3.5 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.3)] placeholder:text-slate-500"
+                            className="input-dark"
                         />
                         <p className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
                             <span className="material-symbols-outlined text-[14px]">info</span>
@@ -118,14 +118,14 @@ export const EditWalletNameModal = ({
                     <button
                         onClick={onClose}
                         disabled={isSaving}
-                        className="px-5 py-2.5 text-sm font-semibold text-slate-400 hover:text-white transition-all rounded-lg hover:bg-white/5 disabled:opacity-50"
+                        className="btn-secondary h-10 px-5 text-sm font-semibold text-slate-400 hover:text-white disabled:opacity-50"
                     >
                         {EDIT_WALLET_MODAL_TEXT.CANCEL}
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving || !name.trim()}
-                        className="px-8 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="btn-primary h-10 px-8 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSaving ? EDIT_WALLET_MODAL_TEXT.SAVING : EDIT_WALLET_MODAL_TEXT.SAVE_CHANGES}
                     </button>

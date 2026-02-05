@@ -1,6 +1,3 @@
-export { Input } from './Input';
-export type { InputProps } from './Input';
-
 export { DarkInput, DarkTextarea } from './DarkInput';
 export type { DarkInputProps, DarkTextareaProps } from './DarkInput';
 
@@ -25,3 +22,7 @@ export type { DropdownMenuItem, DropdownMenuProps } from './DropdownMenu';
 export { SuccessModal } from './SuccessModal';
 
 export { ProcessingModal } from './ProcessingModal';
+
+export { ErrorModal } from './ErrorModal';
+
+export { Card } from './Card';

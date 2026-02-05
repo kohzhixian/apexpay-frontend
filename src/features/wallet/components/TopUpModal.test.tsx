@@ -270,8 +270,8 @@ describe('TopUpModal', () => {
 
             render(<TopUpModal isOpen={true} onClose={mockOnClose} />);
 
-            // Should show loading skeletons (animated pulse divs)
-            const skeletons = document.querySelectorAll('.animate-pulse');
+            // Should show loading skeletons (shimmer effect)
+            const skeletons = document.querySelectorAll('.shimmer');
             expect(skeletons.length).toBeGreaterThan(0);
         });
 

@@ -65,7 +65,7 @@ export const TransferSuccessModal = ({
             }}
             details={transactionDetails}
             primaryAction={{
-                label: MODAL_TEXT.BACK_TO_DASHBOARD,
+                label: MODAL_TEXT.DONE,
                 onClick: onClose,
             }}
             secondaryAction={{

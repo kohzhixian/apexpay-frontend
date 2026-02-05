@@ -19,6 +19,7 @@ import type {
     ActivityItem,
     UpdateWalletNameRequest,
     UpdateWalletNameResponse,
+    GetMonthlySummaryResponse,
 } from '../types';
 
 /** Base path for wallet API endpoints */
@@ -198,6 +199,20 @@ export const walletApi = protectedApi.injectEndpoints({
             providesTags: ['Transaction'],
             // Uses default FREQUENT cache duration (60s) - recent activity updates frequently
         }),
+
+        /**
+         * Gets monthly summary stats (income and spending) for the current month
+         * User ID is extracted from the auth header by the backend
+         * 
+         * Cache: SEMI_STABLE (300s / 5 minutes)
+         * Monthly stats change with each transaction but don't need real-time updates.
+         * Cache is invalidated when transactions occur.
+         */
+        getMonthlySummary: builder.query<GetMonthlySummaryResponse, void>({
+            query: () => `${WALLET_BASE_PATH}/stats/monthly-summary`,
+            providesTags: ['Transaction'],
+            keepUnusedDataFor: CACHE_DURATIONS.SEMI_STABLE,
+        }),
     }),
 });
 
@@ -214,4 +229,5 @@ export const {
     useCancelReservationMutation,
     useGetWalletQuery,
     useGetRecentTransactionsQuery,
+    useGetMonthlySummaryQuery,
 } = walletApi;

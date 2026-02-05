@@ -7,6 +7,7 @@ import { AddWalletModal } from '../components/AddWalletModal';
 import { TransferModal } from '../components/TransferModal';
 import { TopUpModal } from '../components/TopUpModal';
 import { EditWalletNameModal } from '../components/EditWalletNameModal';
+import { LoadingSkeleton } from '../../../components/ui/LoadingSkeleton';
 import { APP_NAME, WALLETS_TEXT, WALLETS_PAGE_TEXT } from '../constants/text';
 import { useCreateWalletMutation, useGetWalletQuery, useGetRecentTransactionsQuery, useUpdateWalletNameMutation } from '../services/walletApi';
 import type { WalletSummary, CreateWalletFormData, CurrencyEnum } from '../types';
@@ -224,7 +225,7 @@ export const WalletsPage = () => {
                     {/* Wallet Cards Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {isLoadingWallet ? (
-                            <div className="h-48 bg-slate-800/50 animate-pulse rounded-2xl" />
+                            <LoadingSkeleton variant="card" height="192px" />
                         ) : wallets.length > 0 ? (
                             wallets.map((wallet) => (
                                 <WalletCard
