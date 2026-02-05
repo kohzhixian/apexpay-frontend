@@ -93,15 +93,19 @@ export const SuccessModal = ({
      * @param value - The value to copy
      * @param label - The label used to identify which item was copied
      */
-    const handleCopy = (value: string, label: string) => {
-        navigator.clipboard.writeText(value);
-        setCopiedId(label);
+    const handleCopy = async (value: string, label: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            setCopiedId(label);
 
-        // Clear any existing timeout before setting a new one
-        if (copyTimeoutRef.current) {
-            clearTimeout(copyTimeoutRef.current);
+            // Clear any existing timeout before setting a new one
+            if (copyTimeoutRef.current) {
+                clearTimeout(copyTimeoutRef.current);
+            }
+            copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
+        } catch (error) {
+            console.error('Failed to copy to clipboard:', error);
         }
-        copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
     };
 
     /**

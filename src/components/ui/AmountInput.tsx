@@ -1,4 +1,4 @@
-import { preventNegativeInput } from '../../utils/inputHelpers';
+import { positiveNumberHandlers } from '../../utils/inputHelpers';
 
 interface AmountInputProps {
     value: string;
@@ -36,7 +36,7 @@ export const AmountInput = ({
                 type="number"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                onKeyDown={preventNegativeInput}
+                {...positiveNumberHandlers}
             />
             {showCurrencySelector && onCurrencyChange && (
                 <div className="absolute right-2 inset-y-2">

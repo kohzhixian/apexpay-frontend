@@ -151,7 +151,7 @@ export const LoginForm = () => {
             </button>
           </div>
 
-          <Button type="submit" disabled={isLoading} leftIcon="login" className="mt-2 rounded-xl shadow-lg shadow-blue-500/25 h-12">
+          <Button type="submit" disabled={isLoading} leftIcon="login" fullWidth className="mt-2 rounded-xl shadow-lg shadow-blue-500/25 h-12">
             {isLoading ? AUTH_TEXT.LOGIN.LOADING_BUTTON : AUTH_TEXT.LOGIN.SUBMIT_BUTTON}
           </Button>
         </form>

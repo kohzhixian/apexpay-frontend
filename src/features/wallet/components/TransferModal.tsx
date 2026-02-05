@@ -7,7 +7,7 @@ import { TransferProcessingModal } from './TransferProcessingModal';
 import { TransferSuccessModal } from './TransferSuccessModal';
 import { TRANSFER_MODAL_TEXT, CURRENCY_OPTIONS } from '../constants/text';
 import { createTransferSchema, type TransferFormData } from '../../../schemas';
-import { preventNegativeInput } from '../../../utils/inputHelpers';
+import { positiveNumberHandlers } from '../../../utils/inputHelpers';
 import { useGetContactsQuery } from '../../user/services/contactsApi';
 import { useTransferMutation } from '../services/walletApi';
 import type { WalletSummary, TransferResponse } from '../types';
@@ -441,7 +441,7 @@ export const TransferModal = ({
                                     step="0.01"
                                     min="0"
                                     placeholder={TRANSFER_MODAL_TEXT.AMOUNT_PLACEHOLDER}
-                                    onKeyDown={preventNegativeInput}
+                                    {...positiveNumberHandlers}
                                     className={`w-full bg-white/5 border ${errors.amount ? 'border-red-500' : 'border-white/10 focus:border-blue-500'
                                         } focus:ring-1 focus:ring-blue-500 rounded-xl py-3 px-4 text-white text-xl font-bold placeholder:text-slate-500 transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                                     {...register('amount')}

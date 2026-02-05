@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import type { CreateWalletFormData } from '../types';
 import { ADD_WALLET_MODAL_TEXT, CURRENCY_OPTIONS } from '../constants/text';
-import { preventNegativeInput } from '../../../utils/inputHelpers';
+import { positiveNumberHandlers } from '../../../utils/inputHelpers';
 
 interface AddWalletModalProps {
     /** Whether the modal is open */
@@ -173,7 +173,7 @@ export const AddWalletModal = ({
                                         parseFloat(e.target.value) || 0
                                     )
                                 }
-                                onKeyDown={preventNegativeInput}
+                                {...positiveNumberHandlers}
                                 placeholder={ADD_WALLET_MODAL_TEXT.INITIAL_BALANCE_PLACEHOLDER}
                                 className="bg-white/5 border border-white/10 text-white rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full p-3 pl-8 placeholder:text-slate-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />

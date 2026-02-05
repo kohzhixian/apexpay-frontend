@@ -102,6 +102,7 @@ export const RegisterForm = () => {
           <Button
             type="submit"
             disabled={isLoading}
+            fullWidth
             className="mt-2 rounded-xl shadow-lg shadow-blue-500/25 h-12"
           >
             {isLoading ? AUTH_TEXT.REGISTER.LOADING_BUTTON : AUTH_TEXT.REGISTER.SUBMIT_BUTTON}
