@@ -1,6 +1,7 @@
 import type { Transaction } from '../types';
 import { TransactionRow } from './TransactionRow';
 import { Alert } from '../../../components/ui/Alert';
+import { LoadingSkeleton } from '../../../components/ui/LoadingSkeleton';
 import { TABLE_HEADERS, TABLE_STATES, TABLE_ICONS } from '../constants/text';
 
 export interface TransactionTableProps {
@@ -22,7 +23,7 @@ export const TransactionTable = ({
             <div className="overflow-hidden rounded-2xl border border-[#304669] bg-[#162032] shadow-sm">
                 <div className="p-8 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                        <LoadingSkeleton variant="rectangle" count={5} height="56px" gap="8px" />
                         <p className="text-[#8fa6cc] text-sm">{TABLE_STATES.LOADING}</p>
                     </div>
                 </div>

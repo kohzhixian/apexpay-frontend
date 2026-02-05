@@ -70,3 +70,35 @@ export function formatDateTime(dateString: string): string {
 
     return `${date} • ${time}`;
 }
+
+/**
+ * Formats a date string to "Month DD, YYYY - HH:MM:SS" format
+ * @param dateString - ISO 8601 date string
+ * @returns Formatted string (e.g., "June 24, 2024 - 14:20:05")
+ */
+export function formatTransactionDateTime(dateString: string): string {
+    try {
+        const date = new Date(dateString);
+
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        const month = monthNames[date.getMonth()];
+        const day = date.getDate();
+        const year = date.getFullYear();
+
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
+
+        return `${month} ${day}, ${year} - ${hours}:${minutes}:${seconds}`;
+    } catch {
+        return 'Invalid date';
+    }
+}

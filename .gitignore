@@ -27,6 +27,7 @@ docs/COMPONENTS.md
 
 # Kiro
 .kiro/steering/
+.kiro/specs/
 
 # Environment files
 .env

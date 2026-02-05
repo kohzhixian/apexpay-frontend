@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DASHBOARD_TEXT } from '../constants/text';
+import { formatDate, formatTime } from '../utils/formatters';
 
 export interface DashboardHeaderProps {
     userName: string;
@@ -18,24 +19,6 @@ export const DashboardHeader = ({ userName }: DashboardHeaderProps) => {
         return () => clearInterval(intervalId);
     }, []);
 
-    const formatDate = (date: Date): string => {
-        const options: Intl.DateTimeFormatOptions = {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        };
-        return date.toLocaleDateString('en-US', options);
-    };
-
-    const formatTime = (date: Date): string => {
-        const options: Intl.DateTimeFormatOptions = {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-        };
-        return date.toLocaleTimeString('en-US', options);
-    };
-
     return (
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="flex flex-col gap-1">
@@ -44,7 +27,7 @@ export const DashboardHeader = ({ userName }: DashboardHeaderProps) => {
                 </h1>
                 <p className="text-[#8fa6cc] text-base font-medium flex items-center gap-2">
                     <span className="material-symbols-outlined text-[18px]">calendar_today</span>
-                    {formatDate(currentTime)} • {formatTime(currentTime)}
+                    {formatDate(currentTime.toISOString())} • {formatTime(currentTime.toISOString())}
                 </p>
             </div>
             <div className="flex items-center gap-3">

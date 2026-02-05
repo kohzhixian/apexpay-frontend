@@ -1,88 +1,86 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { BalanceData, Transaction } from '../types';
-import { TransactionStatus, TransactionType } from '../types';
+import type { Transaction, ActivityItem } from '../types';
+import { TransactionStatus, TransactionType, WalletTransactionStatusEnum } from '../types';
 import { Sidebar } from '../components/Sidebar';
 import { DashboardHeader } from '../components/DashboardHeader';
 import { BalanceCard } from '../components/BalanceCard';
+import { MonthlySummaryCard } from '../components/MonthlySummaryCard';
 import { QuickActionButton } from '../components/QuickActionButton';
 import { TransactionTable } from '../components/TransactionTable';
 import { TopUpModal } from '../components/TopUpModal';
+import { LoadingSkeleton } from '../../../components/ui/LoadingSkeleton';
 import { APP_NAME, DASHBOARD_TEXT, QUICK_ACTIONS, QUICK_ACTION_ICONS } from '../constants/text';
+import { useGetWalletQuery, useGetMonthlySummaryQuery, useGetRecentTransactionsQuery } from '../services/walletApi';
+import { useGetUserDetailsQuery } from '../../user/services/userApi';
+
+/**
+ * Maps backend WalletTransactionStatusEnum to UI TransactionStatus
+ */
+const mapStatus = (status: WalletTransactionStatusEnum): TransactionStatus => {
+    switch (status) {
+        case WalletTransactionStatusEnum.COMPLETED:
+            return TransactionStatus.SUCCESS;
+        case WalletTransactionStatusEnum.PENDING:
+            return TransactionStatus.PENDING;
+        case WalletTransactionStatusEnum.CANCELLED:
+            return TransactionStatus.FAILED;
+        default:
+            return TransactionStatus.PENDING;
+    }
+};
+
+/**
+ * Maps backend activity item to UI transaction type based on description/reference
+ */
+const mapTransactionType = (item: ActivityItem): TransactionType => {
+    const desc = item.description.toLowerCase();
+    if (desc.includes('top up') || desc.includes('topup')) return TransactionType.TOP_UP;
+    if (desc.includes('transfer')) return TransactionType.TRANSFER;
+    if (desc.includes('earning') || desc.includes('income')) return TransactionType.EARNING;
+    if (desc.includes('subscription')) return TransactionType.SUBSCRIPTION;
+    if (desc.includes('exchange')) return TransactionType.EXCHANGE;
+    // Default based on credit/debit
+    return item.isCredit ? TransactionType.EARNING : TransactionType.TRANSFER;
+};
+
+/**
+ * Maps ActivityItem from API to Transaction for UI components
+ */
+const mapActivityToTransaction = (item: ActivityItem): Transaction => ({
+    id: item.walletTransactionId,
+    date: item.datetime,
+    description: item.description,
+    amount: item.isCredit ? item.amount : -item.amount,
+    currency: 'SGD', // Default currency
+    status: mapStatus(item.status),
+    type: mapTransactionType(item),
+});
 
 export const DashboardPage = () => {
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
-    const [balanceData, setBalanceData] = useState<BalanceData | null>(null);
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [isLoadingBalance, setIsLoadingBalance] = useState(true);
-    const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
-    const [transactionsError, setTransactionsError] = useState<string | null>(null);
 
-    // Mock data for now (will be replaced with API calls)
-    useEffect(() => {
-        // Set balance data immediately
-        setBalanceData({
-            availableBalance: 12450.0,
-            reservedBalance: 450.0,
-            currency: 'USD',
-            availableChangePercent: 2.5,
-            isReservedLocked: true,
-            lastUpdated: new Date().toISOString(),
-        });
-        setIsLoadingBalance(false);
+    // Fetch user details and wallet data
+    const { data: user, isLoading: isLoadingUser } = useGetUserDetailsQuery();
+    const { data: wallets, isLoading: isLoadingWallet } = useGetWalletQuery();
+    const { data: monthlySummary, isLoading: isLoadingMonthlySummary } = useGetMonthlySummaryQuery();
+    const {
+        data: recentActivity,
+        isLoading: isLoadingTransactions,
+        error: transactionsError,
+        refetch: refetchTransactions,
+    } = useGetRecentTransactionsQuery();
 
-        // Set transactions immediately
-        setTransactions([
-            {
-                id: '1',
-                date: '2023-02-24T10:42:00Z',
-                description: 'Netflix Subscription',
-                amount: -15.99,
-                currency: 'USD',
-                status: TransactionStatus.SUCCESS,
-                type: TransactionType.SUBSCRIPTION,
-            },
-            {
-                id: '2',
-                date: '2023-02-23T20:15:00Z',
-                description: 'John Doe Transfer',
-                amount: 500.0,
-                currency: 'USD',
-                status: TransactionStatus.PENDING,
-                type: TransactionType.TRANSFER,
-            },
-            {
-                id: '3',
-                date: '2023-02-21T15:30:00Z',
-                description: 'Server Cost',
-                amount: -120.0,
-                currency: 'USD',
-                status: TransactionStatus.FAILED,
-                type: TransactionType.SUBSCRIPTION,
-            },
-            {
-                id: '4',
-                date: '2023-02-20T11:00:00Z',
-                description: 'Upwork Earnings',
-                amount: 1200.0,
-                currency: 'USD',
-                status: TransactionStatus.SUCCESS,
-                type: TransactionType.EARNING,
-            },
-            {
-                id: '5',
-                date: '2023-02-18T09:12:00Z',
-                description: 'Spotify',
-                amount: -9.99,
-                currency: 'USD',
-                status: TransactionStatus.SUCCESS,
-                type: TransactionType.SUBSCRIPTION,
-            },
-        ]);
-        setIsLoadingTransactions(false);
-    }, []);
+    // Get the primary wallet (first wallet in the array)
+    const wallet = wallets?.[0];
+
+    // Calculate total balance across all wallets
+    const totalBalance = wallets?.reduce((sum, w) => sum + w.balance, 0) ?? 0;
+
+    // Map API activity items to UI transaction format
+    const transactions: Transaction[] = recentActivity?.map(mapActivityToTransaction) ?? [];
 
     const handleTopUp = () => {
         setIsTopUpModalOpen(true);
@@ -97,9 +95,7 @@ export const DashboardPage = () => {
     };
 
     const handleRetryTransactions = () => {
-        setTransactionsError(null);
-        setIsLoadingTransactions(true);
-        // Retry logic here
+        refetchTransactions();
     };
 
     return (
@@ -132,30 +128,28 @@ export const DashboardPage = () => {
                 {/* Dashboard Content */}
                 <div className="container mx-auto max-w-6xl px-4 md:px-8 py-8 flex flex-col gap-8">
                     {/* Page Heading */}
-                    <DashboardHeader userName="Alex" />
+                    <DashboardHeader userName={user?.username ?? 'User'} />
 
                     {/* Balance Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {isLoadingBalance ? (
+                        {isLoadingWallet || isLoadingUser ? (
                             <>
-                                <div className="h-40 bg-slate-700 animate-pulse rounded-2xl" />
-                                <div className="h-40 bg-slate-700 animate-pulse rounded-2xl" />
+                                <LoadingSkeleton variant="card" height="160px" />
+                                <LoadingSkeleton variant="card" height="160px" />
                             </>
-                        ) : balanceData ? (
+                        ) : wallet ? (
                             <>
                                 <BalanceCard
                                     title={DASHBOARD_TEXT.AVAILABLE_BALANCE}
-                                    amount={balanceData.availableBalance}
-                                    currency={balanceData.currency}
-                                    changePercent={balanceData.availableChangePercent}
+                                    amount={totalBalance}
+                                    currency={wallet.currency}
                                     variant="available"
                                 />
-                                <BalanceCard
-                                    title={DASHBOARD_TEXT.RESERVED_BALANCE}
-                                    amount={balanceData.reservedBalance}
-                                    currency={balanceData.currency}
-                                    isLocked={balanceData.isReservedLocked}
-                                    variant="reserved"
+                                <MonthlySummaryCard
+                                    income={monthlySummary?.income ?? 0}
+                                    spending={monthlySummary?.spending ?? 0}
+                                    currency={monthlySummary?.currency ?? wallet.currency}
+                                    isLoading={isLoadingMonthlySummary}
                                 />
                             </>
                         ) : null}
@@ -188,7 +182,7 @@ export const DashboardPage = () => {
                         <TransactionTable
                             transactions={transactions}
                             isLoading={isLoadingTransactions}
-                            error={transactionsError}
+                            error={transactionsError ? 'Failed to load transactions' : null}
                             onRetry={handleRetryTransactions}
                         />
                     </div>

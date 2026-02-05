@@ -106,7 +106,7 @@ export const TransactionRow = ({ transaction }: TransactionRowProps) => {
                 <span
                     className={`font-bold text-sm ${isPositive
                         ? 'text-emerald-400'
-                        : 'text-white'
+                        : 'text-red-400'
                         }`}
                 >
                     {isPositive ? '+ ' : '- '}

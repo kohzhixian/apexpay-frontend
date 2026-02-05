@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { LoginForm, RegisterForm } from '../features/auth/components';
-import { DashboardPage, TransferPage, TransactionHistoryPage } from '../features/wallet/pages';
+import { DashboardPage, TransactionHistoryPage, WalletsPage, WalletDetailsPage } from '../features/wallet/pages';
+import { PaymentDevToolsPage } from '../features/payment/pages';
 
 export const router = createBrowserRouter([
     {
@@ -25,7 +26,7 @@ export const router = createBrowserRouter([
     },
     {
         path: '/dashboard/transfer',
-        element: <TransferPage />,
+        element: <Navigate to="/wallets" replace />,
     },
     {
         path: '/dashboard/exchange',
@@ -34,6 +35,22 @@ export const router = createBrowserRouter([
     {
         path: '/cards',
         element: <div className="p-8 text-center">Cards Page (Coming Soon)</div>,
+    },
+    {
+        path: '/wallets',
+        element: <WalletsPage />,
+    },
+    {
+        path: '/wallets/new',
+        element: <div className="p-8 text-center">Add New Wallet Page (Coming Soon)</div>,
+    },
+    {
+        path: '/wallets/:walletId',
+        element: <WalletDetailsPage />,
+    },
+    {
+        path: '/payment',
+        element: <PaymentDevToolsPage />,
     },
     {
         path: '/history',

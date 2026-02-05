@@ -1,78 +1,223 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { TopUpProcessingModal } from './TopUpProcessingModal';
 import { TopUpSuccessModal } from './TopUpSuccessModal';
-import { MODAL_TEXT, PAYMENT_METHOD_TEXT, CURRENCIES, ICONS } from '../constants/text';
-import { AmountInput, Modal, ModalHeader, ModalBody, ModalFooter } from '../../../components/ui';
+import { MODAL_TEXT, CURRENCIES, ICONS, TOP_UP_QUICK_AMOUNTS, PAYMENT_METHODS_TEXT, ERROR_MODAL_TEXT } from '../constants/text';
+import { AmountInput, Modal, ModalHeader, ModalBody, ModalFooter, LoadingSkeleton, ErrorModal } from '../../../components/ui';
+import { topUpSchema, type TopUpFormData } from '../../../schemas';
+import { useTopUpWalletMutation, useGetWalletQuery } from '../services/walletApi';
+import { useGetPaymentMethodsQuery } from '../../payment/services/paymentMethodApi';
+import { PaymentMethodType } from '../../payment/types';
+import type { CurrencyEnum } from '../types';
+import { formatTransactionDateTime } from '../utils/formatters';
 
-interface PaymentMethod {
-    id: string;
-    type: 'card' | 'bank';
-    name: string;
-    details: string;
-    icon: string;
-}
+/** Minimum time (ms) to show the processing modal for better UX */
+const MIN_PROCESSING_TIME_MS = 2000;
 
 interface TopUpModalProps {
     isOpen: boolean;
     onClose: () => void;
+    /** Optional wallet ID to top up - if not provided, uses first wallet */
+    walletId?: string;
 }
 
-export const TopUpModal = ({ isOpen, onClose }: TopUpModalProps) => {
-    const [amount, setAmount] = useState('');
-    const [currency, setCurrency] = useState<string>(CURRENCIES.SGD);
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card1');
+export const TopUpModal = ({ isOpen, onClose, walletId }: TopUpModalProps) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [showError, setShowError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [newBalance, setNewBalance] = useState(0);
+    const [transactionId, setTransactionId] = useState('');
+    const [timestamp, setTimestamp] = useState('');
 
-    const paymentMethods: PaymentMethod[] = [
-        {
-            id: 'card1',
-            type: 'card',
-            name: PAYMENT_METHOD_TEXT.VISA_ENDING,
-            details: PAYMENT_METHOD_TEXT.VISA_EXPIRES,
-            icon: ICONS.CREDIT_CARD,
+    // Track completion conditions for hybrid approach
+    const [isApiComplete, setIsApiComplete] = useState(false);
+    const [isMinTimeElapsed, setIsMinTimeElapsed] = useState(false);
+
+    // RTK Query hooks
+    const { data: wallets } = useGetWalletQuery();
+    const { data: paymentMethodsData, isLoading: isLoadingPaymentMethods } = useGetPaymentMethodsQuery();
+    const [topUpWallet] = useTopUpWalletMutation();
+
+    // Get the target wallet (provided walletId or first wallet)
+    const targetWallet = walletId
+        ? wallets?.find(w => w.walletId === walletId)
+        : wallets?.[0];
+
+    /**
+     * Maps API payment methods to the UI format
+     */
+    const paymentMethods = useMemo(() => {
+        if (!paymentMethodsData) return [];
+
+        return paymentMethodsData.map((pm) => {
+            const isCard = pm.type === PaymentMethodType.CARD;
+            const expiryDisplay = pm.expiryMonth && pm.expiryYear
+                ? `Expires ${String(pm.expiryMonth).padStart(2, '0')}/${String(pm.expiryYear).slice(-2)}`
+                : '';
+            const bankDisplay = pm.accountType && pm.last4
+                ? `${pm.accountType} •••• ${pm.last4}`
+                : '';
+
+            return {
+                id: pm.id,
+                type: isCard ? 'card' as const : 'bank' as const,
+                name: isCard
+                    ? `${pm.brand || 'Card'} ending in ${pm.last4}`
+                    : pm.bankName || pm.displayName,
+                details: isCard ? expiryDisplay : bankDisplay,
+                icon: isCard ? ICONS.CREDIT_CARD : ICONS.ACCOUNT_BALANCE,
+                isDefault: pm.isDefault,
+            };
+        });
+    }, [paymentMethodsData]);
+
+    const {
+        control,
+        handleSubmit,
+        setValue,
+        watch,
+        reset,
+        formState: { errors },
+    } = useForm<TopUpFormData>({
+        resolver: zodResolver(topUpSchema),
+        defaultValues: {
+            amount: '',
+            currency: CURRENCIES.SGD,
+            paymentMethodId: '',
         },
-        {
-            id: 'bank1',
-            type: 'bank',
-            name: PAYMENT_METHOD_TEXT.CHASE_BANK,
-            details: PAYMENT_METHOD_TEXT.CHASE_CHECKING,
-            icon: ICONS.ACCOUNT_BALANCE,
-        },
-    ];
+        mode: 'onBlur',
+    });
 
-    const transactionRef = 'APX-8921-MNQ-772';
+    const amount = watch('amount');
+    const currency = watch('currency');
+    const selectedPaymentMethodId = watch('paymentMethodId');
 
-    const handleQuickAmount = (value: number) => {
-        setAmount(value.toString());
-    };
+    // Reset form when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            reset();
+            setIsApiComplete(false);
+            setIsMinTimeElapsed(false);
+            setShowError(false);
+            setErrorMessage('');
+        }
+    }, [isOpen, reset]);
 
-    const handleCopyReference = () => {
-        navigator.clipboard.writeText(transactionRef);
-    };
+    // Set default payment method when modal opens and data is available
+    useEffect(() => {
+        if (isOpen && paymentMethods.length > 0) {
+            const currentValue = selectedPaymentMethodId;
+            // Only set if no payment method is selected
+            if (!currentValue) {
+                const defaultMethod = paymentMethods.find(pm => pm.isDefault) || paymentMethods[0];
+                setValue('paymentMethodId', defaultMethod.id);
+            }
+        }
+    }, [isOpen, paymentMethods, selectedPaymentMethodId, setValue]);
 
-    const handleSubmit = () => {
-        console.log('Top up submitted:', { amount, currency, selectedPaymentMethod });
+    // Transition to success when both API and minimum time are complete
+    useEffect(() => {
+        if (isApiComplete && isMinTimeElapsed && isProcessing) {
+            setIsProcessing(false);
+            setShowSuccess(true);
+            setIsApiComplete(false);
+            setIsMinTimeElapsed(false);
+        }
+    }, [isApiComplete, isMinTimeElapsed, isProcessing]);
+
+    /**
+     * Handles quick amount button clicks
+     */
+    const handleQuickAmount = useCallback((value: number) => {
+        setValue('amount', value.toString(), { shouldValidate: true });
+    }, [setValue]);
+
+    const onSubmit = async (data: TopUpFormData) => {
+        if (!targetWallet) {
+            console.error('No wallet available for top up');
+            return;
+        }
+
         setIsProcessing(true);
+        setIsApiComplete(false);
+        setIsMinTimeElapsed(false);
+
+        // Start minimum time timer
+        setTimeout(() => {
+            setIsMinTimeElapsed(true);
+        }, MIN_PROCESSING_TIME_MS);
+
+        try {
+            const response = await topUpWallet({
+                amount: parseFloat(data.amount),
+                walletId: targetWallet.walletId,
+                currency: data.currency as CurrencyEnum,
+                paymentMethodId: data.paymentMethodId
+            }).unwrap();
+
+            // Calculate new balance for success modal
+            setNewBalance(targetWallet.balance + parseFloat(data.amount));
+            // Store transaction ID from response
+            setTransactionId(response.transactionId || '');
+            // Store timestamp from response using centralized formatter
+            const formattedTimestamp = formatTransactionDateTime(
+                response.createdAt || new Date().toISOString()
+            );
+            setTimestamp(formattedTimestamp);
+            // Mark API as complete - will transition to success when min time also elapses
+            setIsApiComplete(true);
+        } catch (error) {
+            console.error('Top up failed:', error);
+            setIsProcessing(false);
+
+            // Extract error message from RTK Query error response
+            const errorData = error as { data?: { message?: string; error?: string }; error?: string };
+            const message = errorData?.data?.message
+                || errorData?.data?.error
+                || errorData?.error
+                || 'An unexpected error occurred. Please try again.';
+            setErrorMessage(message);
+            setShowError(true);
+        }
     };
 
+    /**
+     * Handles processing modal animation complete (no longer used for transition)
+     * Kept for backwards compatibility with TopUpProcessingModal
+     */
     const handleProcessingComplete = () => {
-        setIsProcessing(false);
-        setShowSuccess(true);
+        // Transition is now handled by the useEffect watching isApiComplete and isMinTimeElapsed
     };
 
     const handleSuccessClose = () => {
         setShowSuccess(false);
         onClose();
-        // Reset form
-        setAmount('');
-        setSelectedPaymentMethod('card1');
+        reset();
     };
 
-    const selectedMethod = paymentMethods.find((m) => m.id === selectedPaymentMethod);
+    /**
+     * Handles closing the error modal
+     */
+    const handleErrorClose = () => {
+        setShowError(false);
+        setErrorMessage('');
+    };
+
+    /**
+     * Handles retry after error - closes error modal and resubmits
+     */
+    const handleRetry = () => {
+        setShowError(false);
+        setErrorMessage('');
+        handleSubmit(onSubmit)();
+    };
+
+    const selectedMethod = paymentMethods.find((m) => m.id === selectedPaymentMethodId);
     const paymentMethodDisplay = selectedMethod
         ? `${selectedMethod.name.split(' ')[0]} **** ${selectedMethod.details.split(' ').pop()}`
-        : `${PAYMENT_METHOD_TEXT.CHASE_BANK} **** 1234`;
+        : 'Payment Method';
 
     return (
         <>
@@ -85,115 +230,128 @@ export const TopUpModal = ({ isOpen, onClose }: TopUpModalProps) => {
                 />
 
                 <ModalBody>
-                    {/* Amount Input Section */}
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-[#90a4cb] ml-1">{MODAL_TEXT.ENTER_AMOUNT}</label>
-                        <AmountInput
-                            autoFocus
-                            value={amount}
-                            onChange={setAmount}
-                            currency={currency}
-                            onCurrencyChange={setCurrency}
-                            currencies={[CURRENCIES.SGD, CURRENCIES.USD, CURRENCIES.EUR, CURRENCIES.GBP]}
-                            placeholder={MODAL_TEXT.AMOUNT_PLACEHOLDER}
-                        />
-
-                        {/* Quick Amount Buttons */}
-                        <div className="flex gap-2 mt-2">
-                            <button
-                                onClick={() => handleQuickAmount(10)}
-                                className="px-4 py-2 bg-[#222f49] hover:bg-[#314368] text-white text-sm font-medium rounded-lg transition-colors"
-                            >
-                                +$10.00
-                            </button>
-                            <button
-                                onClick={() => handleQuickAmount(50)}
-                                className="px-4 py-2 bg-[#222f49] hover:bg-[#314368] text-white text-sm font-medium rounded-lg transition-colors"
-                            >
-                                +$50.00
-                            </button>
-                            <button
-                                onClick={() => handleQuickAmount(100)}
-                                className="px-4 py-2 bg-[#222f49] hover:bg-[#314368] text-white text-sm font-medium rounded-lg transition-colors"
-                            >
-                                +$100.00
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Payment Method Selection */}
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between ml-1">
-                            <label className="text-sm font-medium text-[#90a4cb]">{MODAL_TEXT.PAYMENT_METHOD}</label>
-                            <button className="text-primary text-xs font-semibold hover:underline flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[14px]">{ICONS.ADD}</span>
-                                {MODAL_TEXT.ADD_NEW}
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-1 gap-3">
-                            {paymentMethods.map((method) => (
-                                <label
-                                    key={method.id}
-                                    className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPaymentMethod === method.id
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-[#314368] bg-[#101623] hover:border-[#4b5563]'
-                                        }`}
-                                >
-                                    <input
-                                        className="sr-only"
-                                        name="payment_method"
-                                        type="radio"
-                                        checked={selectedPaymentMethod === method.id}
-                                        onChange={() => setSelectedPaymentMethod(method.id)}
+                    <form id="topup-form" onSubmit={handleSubmit(onSubmit)}>
+                        {/* Amount Input Section */}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-[#90a4cb] ml-1">{MODAL_TEXT.ENTER_AMOUNT}</label>
+                            <Controller
+                                name="amount"
+                                control={control}
+                                render={({ field }) => (
+                                    <AmountInput
+                                        autoFocus
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        currency={currency}
+                                        onCurrencyChange={(val) => setValue('currency', val)}
+                                        currencies={[CURRENCIES.SGD, CURRENCIES.USD, CURRENCIES.EUR, CURRENCIES.GBP]}
+                                        placeholder={MODAL_TEXT.AMOUNT_PLACEHOLDER}
                                     />
-                                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#222f49] text-white mr-4 shrink-0 border border-[#314368]">
-                                        <span className="material-symbols-outlined">{method.icon}</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-white font-medium text-sm">{method.name}</p>
-                                            {selectedPaymentMethod === method.id ? (
-                                                <span className="text-primary material-symbols-outlined text-[20px] fill-1">
-                                                    {ICONS.CHECK_CIRCLE}
-                                                </span>
-                                            ) : (
-                                                <div className="w-5 h-5 rounded-full border border-[#4b5563]"></div>
-                                            )}
-                                        </div>
-                                        <p className="text-[#90a4cb] text-xs">{method.details}</p>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
+                                )}
+                            />
+                            {errors.amount && (
+                                <p className="text-red-500 text-xs ml-1">{errors.amount.message}</p>
+                            )}
 
-                    {/* Transaction Reference */}
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-[#90a4cb] ml-1">{MODAL_TEXT.TRANSACTION_REFERENCE}</label>
-                        <div className="flex items-center bg-[#101623] border border-[#314368] rounded-lg px-3 py-2.5">
-                            <span className="material-symbols-outlined text-[#90a4cb] text-[18px] mr-2">
-                                {ICONS.FINGERPRINT}
-                            </span>
-                            <span className="text-sm text-white font-mono flex-1 tracking-wider">
-                                {transactionRef}
-                            </span>
-                            <button
-                                onClick={handleCopyReference}
-                                className="text-[#90a4cb] hover:text-white"
-                                title="Copy Reference"
-                            >
-                                <span className="material-symbols-outlined text-[18px]">{ICONS.CONTENT_COPY}</span>
-                            </button>
+                            {/* Quick Amount Buttons */}
+                            <div className="flex gap-2 mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleQuickAmount(10)}
+                                    className="px-4 py-2 bg-[#222f49] hover:bg-[#314368] text-white text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    {TOP_UP_QUICK_AMOUNTS.TEN}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleQuickAmount(50)}
+                                    className="px-4 py-2 bg-[#222f49] hover:bg-[#314368] text-white text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    {TOP_UP_QUICK_AMOUNTS.FIFTY}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleQuickAmount(100)}
+                                    className="px-4 py-2 bg-[#222f49] hover:bg-[#314368] text-white text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    {TOP_UP_QUICK_AMOUNTS.HUNDRED}
+                                </button>
+                            </div>
                         </div>
-                        <p className="text-[11px] text-[#90a4cb] ml-1">
-                            {MODAL_TEXT.REFERENCE_HELP}
-                        </p>
-                    </div>
+
+                        {/* Payment Method Selection */}
+                        <div className="flex flex-col gap-3 mt-6">
+                            <div className="flex items-center justify-between ml-1">
+                                <label className="text-sm font-medium text-[#90a4cb]">{MODAL_TEXT.PAYMENT_METHOD}</label>
+                                <button type="button" className="text-primary text-xs font-semibold hover:underline flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">{ICONS.ADD}</span>
+                                    {MODAL_TEXT.ADD_NEW}
+                                </button>
+                            </div>
+                            <Controller
+                                name="paymentMethodId"
+                                control={control}
+                                render={({ field }) => (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {isLoadingPaymentMethods ? (
+                                            // Loading skeleton using reusable LoadingSkeleton component
+                                            <LoadingSkeleton variant="card" count={2} height="72px" gap="12px" />
+                                        ) : paymentMethods.length === 0 ? (
+                                            // Empty state
+                                            <div className="text-center py-6 text-[#90a4cb]">
+                                                <span className="material-symbols-outlined text-3xl mb-2 block">credit_card_off</span>
+                                                <p className="text-sm">{PAYMENT_METHODS_TEXT.NO_METHODS_AVAILABLE}</p>
+                                            </div>
+                                        ) : (
+                                            // Payment method list
+                                            paymentMethods.map((method) => (
+                                                <label
+                                                    key={method.id}
+                                                    className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${field.value === method.id
+                                                        ? 'border-primary bg-primary/5'
+                                                        : 'border-[#314368] bg-[#101623] hover:border-[#4b5563]'
+                                                        }`}
+                                                >
+                                                    <input
+                                                        className="sr-only"
+                                                        name="payment_method"
+                                                        type="radio"
+                                                        checked={field.value === method.id}
+                                                        onChange={() => field.onChange(method.id)}
+                                                    />
+                                                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#222f49] text-white mr-4 shrink-0 border border-[#314368]">
+                                                        <span className="material-symbols-outlined">{method.icon}</span>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="text-white font-medium text-sm">{method.name}</p>
+                                                            {field.value === method.id ? (
+                                                                <span className="text-primary material-symbols-outlined text-[20px] fill-1">
+                                                                    {ICONS.CHECK_CIRCLE}
+                                                                </span>
+                                                            ) : (
+                                                                <div className="w-5 h-5 rounded-full border border-[#4b5563]"></div>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[#90a4cb] text-xs">{method.details}</p>
+                                                    </div>
+                                                </label>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            />
+                            {errors.paymentMethodId && (
+                                <p className="text-red-500 text-xs ml-1">{errors.paymentMethodId.message}</p>
+                            )}
+                        </div>
+                    </form>
                 </ModalBody>
 
                 <ModalFooter>
                     <button
-                        onClick={handleSubmit}
+                        type="submit"
+                        form="topup-form"
                         className="w-full h-12 bg-primary hover:bg-[#2563eb] text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 group"
                     >
                         {MODAL_TEXT.REVIEW_TRANSACTION}
@@ -224,10 +382,40 @@ export const TopUpModal = ({ isOpen, onClose }: TopUpModalProps) => {
                 isOpen={showSuccess}
                 amount={amount || '0.00'}
                 currency={currency}
-                newBalance={5420.0}
+                newBalance={newBalance}
                 paymentMethod={paymentMethodDisplay}
-                transactionId="#TRX-882910-APX"
+                transactionId={transactionId || 'N/A'}
+                timestamp={timestamp}
                 onClose={handleSuccessClose}
+            />
+
+            {/* Error Modal */}
+            <ErrorModal
+                isOpen={showError}
+                onClose={handleErrorClose}
+                title={ERROR_MODAL_TEXT.TOP_UP_FAILED_TITLE}
+                subtitle={errorMessage}
+                details={[
+                    {
+                        label: ERROR_MODAL_TEXT.AMOUNT_LABEL,
+                        value: `$${amount || '0.00'}`,
+                        currency: currency,
+                        icon: ICONS.ACCOUNT_BALANCE_WALLET,
+                    },
+                ]}
+                primaryAction={{
+                    label: ERROR_MODAL_TEXT.TRY_AGAIN,
+                    onClick: handleRetry,
+                }}
+                secondaryAction={{
+                    label: ERROR_MODAL_TEXT.CLOSE,
+                    onClick: handleErrorClose,
+                }}
+                footerText="If this issue persists, please"
+                supportLink={{
+                    text: 'contact support',
+                    href: '#',
+                }}
             />
         </>
     );

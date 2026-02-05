@@ -10,12 +10,15 @@ export const AUTH_TEXT = {
     REMEMBER_ME: 'Remember me',
     FORGOT_PASSWORD: 'Forgot Password?',
     SUBMIT_BUTTON: 'Sign In',
+    LOADING_BUTTON: 'Signing in...',
     FOOTER_TEXT: 'New to ApexPay?',
     FOOTER_LINK: 'Create an account',
     ERROR_TITLE: 'Invalid credentials',
     ERROR_MESSAGE: 'Please check your email and password and try again.',
+    SERVICE_UNAVAILABLE_TITLE: 'Service unavailable',
+    LOGIN_FAILED_TITLE: 'Login failed',
   },
-  
+
   // Register Page
   REGISTER: {
     TITLE: 'Join ApexPay',
@@ -27,13 +30,16 @@ export const AUTH_TEXT = {
     PASSWORD_LABEL: 'Password',
     PASSWORD_PLACEHOLDER: 'Create a password',
     SUBMIT_BUTTON: 'Create Account',
+    LOADING_BUTTON: 'Creating Account...',
+    ERROR_TITLE: 'Registration Failed',
+    ERROR_MESSAGE: 'An error occurred during registration. Please try again.',
     SOCIAL_DIVIDER: 'Or continue with',
     GOOGLE_BUTTON: 'Google',
     GITHUB_BUTTON: 'GitHub',
     FOOTER_TEXT: 'Already have an account?',
     FOOTER_LINK: 'Log in',
   },
-  
+
   // Common
   COMMON: {
     COPYRIGHT: '© 2024 ApexPay Inc. All rights reserved.',

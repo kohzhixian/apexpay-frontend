@@ -1,4 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLogoutMutation } from '../../auth/services/authApi';
+import { APP_NAME, APP_TAGLINE, NAVIGATION_TEXT } from '../constants/text';
 import type { NavigationItem } from '../types';
 
 export interface SidebarProps {
@@ -10,42 +12,42 @@ export interface SidebarProps {
 const navigationItems: NavigationItem[] = [
     {
         id: 'dashboard',
-        label: 'Dashboard',
+        label: NAVIGATION_TEXT.DASHBOARD,
         icon: 'dashboard',
         path: '/dashboard',
         requiresAuth: true,
     },
     {
-        id: 'cards',
-        label: 'Cards',
-        icon: 'credit_card',
-        path: '/cards',
+        id: 'wallets',
+        label: NAVIGATION_TEXT.WALLETS,
+        icon: 'account_balance_wallet',
+        path: '/wallets',
         requiresAuth: true,
     },
     {
-        id: 'transfer',
-        label: 'Transfer',
-        icon: 'send',
-        path: '/dashboard/transfer',
+        id: 'payment',
+        label: NAVIGATION_TEXT.PAYMENT,
+        icon: 'payments',
+        path: '/payment',
         requiresAuth: true,
     },
     {
         id: 'history',
-        label: 'History',
+        label: NAVIGATION_TEXT.HISTORY,
         icon: 'history',
         path: '/history',
         requiresAuth: true,
     },
     {
         id: 'analytics',
-        label: 'Analytics',
+        label: NAVIGATION_TEXT.ANALYTICS,
         icon: 'pie_chart',
         path: '/analytics',
         requiresAuth: true,
     },
     {
         id: 'settings',
-        label: 'Settings',
+        label: NAVIGATION_TEXT.SETTINGS,
         icon: 'settings',
         path: '/settings',
         requiresAuth: true,
@@ -54,10 +56,21 @@ const navigationItems: NavigationItem[] = [
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     const location = useLocation();
+    const navigate = useNavigate();
+    const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
-    const handleSignOut = () => {
-        // TODO: Implement sign out logic
-        console.log('Sign out clicked');
+    /**
+     * Handles user sign out by calling logout API and redirecting to login
+     */
+    const handleSignOut = async () => {
+        try {
+            await logout().unwrap();
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            // Still redirect to login even if API fails (clear local state)
+            navigate('/login');
+        }
     };
 
     return (
@@ -93,10 +106,10 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                             />
                             <div className="flex flex-col">
                                 <h1 className="text-white text-lg font-bold leading-tight">
-                                    ApexPay
+                                    {APP_NAME}
                                 </h1>
                                 <p className="text-[#8fa6cc] text-xs font-medium uppercase tracking-wider">
-                                    Wallet Dashboard
+                                    {APP_TAGLINE}
                                 </p>
                             </div>
                         </div>
@@ -134,10 +147,15 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                     <div className="mt-auto">
                         <button
                             onClick={handleSignOut}
-                            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-[#8fa6cc] hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
+                            disabled={isLoggingOut}
+                            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-[#8fa6cc] hover:bg-rose-500/10 hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <span className="material-symbols-outlined text-[24px]">logout</span>
-                            <span className="text-sm font-medium">Sign Out</span>
+                            <span className="material-symbols-outlined text-[24px]">
+                                {isLoggingOut ? 'hourglass_empty' : 'logout'}
+                            </span>
+                            <span className="text-sm font-medium">
+                                {isLoggingOut ? NAVIGATION_TEXT.SIGNING_OUT : NAVIGATION_TEXT.SIGN_OUT}
+                            </span>
                         </button>
                     </div>
                 </div>

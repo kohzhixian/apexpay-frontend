@@ -350,3 +350,231 @@ export const SEARCH_PLACEHOLDERS = {
     TRANSACTIONS: 'Search transactions...',
     CONTACTS: 'Search by name, email, or handle...',
 } as const;
+
+// Wallets Page
+export const WALLETS_TEXT = {
+    PAGE_TITLE: 'My Wallets',
+    PAGE_DESCRIPTION: 'Manage your distributed funds across multiple accounts.',
+    ADD_NEW_WALLET: 'Add New Wallet',
+    TOTAL_NET_WORTH: 'Total Net Worth',
+    MONTHLY_GROWTH: 'Monthly Growth',
+    ACTIVE_ASSETS: 'Active Assets',
+    CURRENCIES_SUFFIX: 'Currencies',
+    CURRENT_BALANCE: 'Current Balance',
+    RECENT_ACTIVITY: 'Recent Distribution Activity',
+    ACTIVITY_LOGS: 'Activity Logs',
+    EDIT_NAME: 'Edit Name',
+    VIEW_DETAILS: 'View Details',
+    VIEW_HISTORY: 'View History',
+} as const;
+
+// Wallet Details Page
+export const WALLET_DETAILS_TEXT = {
+    BREADCRUMB_WALLETS: 'Wallets',
+    EXPORT_CSV: 'Export CSV',
+    TOP_UP: 'Top Up',
+    ACTIVE: 'Active',
+    CURRENT_BALANCE: 'Current Balance',
+    OVERVIEW: 'Overview',
+    TOTAL_INCOME: 'Total Income',
+    TOTAL_SPENT: 'Total Spent',
+    APY_GROWTH: 'APY Growth',
+    VIEW_FULL_REPORT: 'View Full Report',
+    BALANCE_TRENDS: 'Balance Trends',
+    RECENT_TRANSACTIONS: 'Recent Transactions',
+    VIEW_ALL: 'View All',
+    TECHNICAL_METADATA: 'Technical Metadata',
+    LEDGER_ADDRESS: 'Ledger Address',
+    CREATION_DATE: 'Creation Date',
+    WALLET_TYPE: 'Wallet Type',
+    SECURITY_FEATURES: 'Security Features',
+    TWO_FA_ENABLED: '2FA Enabled',
+    COLD_STORAGE: 'Cold Storage',
+    PORTFOLIO_INSIGHTS: 'Portfolio Insights',
+    REVIEW_OPTIMIZER: 'Review Optimizer',
+    TIME_PERIODS: {
+        DAY: '1D',
+        WEEK: '1W',
+        MONTH: '1M',
+        YEAR: '1Y',
+    },
+    DAYS_OF_WEEK: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+} as const;
+
+// Activity Table Headers
+export const ACTIVITY_TABLE_HEADERS = {
+    DATE: 'Date',
+    DESCRIPTION: 'Description',
+    WALLET: 'Wallet',
+    AMOUNT: 'Amount',
+    STATUS: 'Status',
+} as const;
+
+// Add Wallet Modal
+export const ADD_WALLET_MODAL_TEXT = {
+    TITLE: 'Add New Wallet',
+    SUBTITLE: 'Create a new wallet to manage your funds',
+    WALLET_NAME_LABEL: 'Wallet Name',
+    WALLET_NAME_PLACEHOLDER: 'e.g. Daily Expenses, Travel Fund',
+    CURRENCY_LABEL: 'Currency Type',
+    PURPOSE_LABEL: 'Wallet Purpose',
+    INITIAL_BALANCE_LABEL: 'Initial Balance',
+    INITIAL_BALANCE_PLACEHOLDER: '0.00',
+    CANCEL: 'Cancel',
+    CREATE_WALLET: 'Create Wallet',
+} as const;
+
+// Currency options for wallet creation
+export const CURRENCY_OPTIONS = [
+    { value: 'SGD', label: 'SGD - Singapore Dollar' },
+] as const;
+
+// Transfer Modal
+export const TRANSFER_MODAL_TEXT = {
+    TITLE: 'Initiate Transfer',
+    STEP_INDICATOR: 'Step 1 of 3',
+    SOURCE_WALLET_LABEL: 'Source Wallet',
+    RECIPIENT_LABEL: 'Recipient ID or Email',
+    RECIPIENT_PLACEHOLDER: 'e.g. user@apexpay.net or #882910',
+    SELECT_FROM_CONTACTS: 'Select from Contacts',
+    AMOUNT_LABEL: 'Amount',
+    AMOUNT_PLACEHOLDER: '0.00',
+    CURRENCY_LABEL: 'Currency',
+    CLIENT_REQUEST_ID: 'Client Request ID',
+    CONFIRM_TRANSFER: 'Confirm Transfer',
+    CANCEL: 'Cancel',
+    ENCRYPTED_TRANSFER: 'End-to-End Encrypted Transfer',
+    TRANSFER_FAILED: 'Transfer Failed',
+    SELECT_WALLET: 'Select Wallet',
+    NO_WALLET_SELECTED: 'No wallet selected',
+    CHANGE_WALLET: 'Change',
+    LOADING_CONTACTS: 'Loading contacts...',
+    NO_CONTACTS_FOUND: 'No contacts found',
+    AVAILABLE_SUFFIX: 'available',
+} as const;
+
+// Wallet Card
+export const WALLET_CARD_TEXT = {
+    TOP_UP: 'Top Up',
+    TRANSFER: 'Transfer',
+    WALLET_OPTIONS: 'Wallet options',
+} as const;
+
+// Activity Table
+export const ACTIVITY_TABLE_TEXT = {
+    LOADING: 'Loading activities...',
+    NO_ACTIVITY: 'No recent activity',
+} as const;
+
+// Balance Card
+export const BALANCE_CARD_TEXT = {
+    LOCKED: 'Locked',
+} as const;
+
+// Sidebar / Navigation
+export const NAVIGATION_TEXT = {
+    DASHBOARD: 'Dashboard',
+    WALLETS: 'Wallets',
+    PAYMENT: 'Payment',
+    HISTORY: 'History',
+    ANALYTICS: 'Analytics',
+    SETTINGS: 'Settings',
+    SIGN_OUT: 'Sign Out',
+    SIGNING_OUT: 'Signing Out...',
+} as const;
+
+// Edit Wallet Name Modal
+export const EDIT_WALLET_MODAL_TEXT = {
+    TITLE: 'Edit Name',
+    WALLET_NAME_LABEL: 'Wallet Name',
+    WALLET_NAME_PLACEHOLDER: 'Enter wallet name',
+    HELP_TEXT: 'Choose a name that helps you identify this ledger.',
+    CANCEL: 'Cancel',
+    SAVE_CHANGES: 'Save Changes',
+    SAVING: 'Saving...',
+} as const;
+
+// Top Up Modal - Quick Amounts
+export const TOP_UP_QUICK_AMOUNTS = {
+    TEN: '+$10.00',
+    FIFTY: '+$50.00',
+    HUNDRED: '+$100.00',
+} as const;
+
+// Payment Methods
+export const PAYMENT_METHODS_TEXT = {
+    NO_METHODS_AVAILABLE: 'No payment methods available',
+} as const;
+
+// Error Modal
+export const ERROR_MODAL_TEXT = {
+    // Top Up Errors
+    TOP_UP_FAILED_TITLE: 'Top Up Failed',
+    TOP_UP_FAILED_SUBTITLE: 'We couldn\'t process your top up. Please check your payment method and try again.',
+    // Transfer Errors
+    TRANSFER_FAILED_TITLE: 'Transfer Failed',
+    TRANSFER_FAILED_SUBTITLE: 'We couldn\'t complete your transfer. Please try again or contact support.',
+    // Common
+    TRY_AGAIN: 'Try Again',
+    CLOSE: 'Close',
+    CONTACT_SUPPORT_FOOTER: 'If this issue persists, please contact support.',
+    ERROR_CODE_LABEL: 'Error Code',
+    TIMESTAMP_LABEL: 'Timestamp',
+    AMOUNT_LABEL: 'Amount',
+} as const;
+
+// Wallet Details Transaction Table
+export const WALLET_TRANSACTION_TABLE_TEXT = {
+    TRANSACTION: 'Transaction',
+    DATE: 'Date',
+    STATUS: 'Status',
+    AMOUNT: 'Amount',
+    NO_TRANSACTIONS: 'No transactions yet',
+    STATUS_COMPLETED: 'COMPLETED',
+    STATUS_PROCESSING: 'PROCESSING',
+    STATUS_FAILED: 'FAILED',
+} as const;
+
+// Wallets Page
+export const WALLETS_PAGE_TEXT = {
+    NO_WALLETS: 'No wallets yet. Create your first wallet to get started.',
+} as const;
+
+// Wallet Details Page
+export const WALLET_DETAILS_PAGE_TEXT = {
+    LOADING: 'Loading wallet details...',
+    NOT_FOUND: 'Wallet not found',
+    BACK_TO_WALLETS: 'Back to Wallets',
+} as const;
+
+// Transaction History Page
+export const TRANSACTION_HISTORY_TEXT = {
+    SHOWING_TRANSACTIONS_FOR: (walletName: string) => `Showing transactions for ${walletName}`,
+    FILTERED_BY: 'Filtered by:',
+    VIEW_WALLET: 'View wallet →',
+    LOADING: 'Loading transactions...',
+    FAILED_TO_LOAD: 'Failed to load transactions',
+    TRY_AGAIN: 'Try again',
+    WALLET_HEADER: 'Wallet',
+} as const;
+
+// Portfolio Insights
+export const PORTFOLIO_INSIGHTS_TEXT = {
+    PERFORMANCE_MESSAGE: (walletName: string, percent: number) =>
+        `Your ${walletName} wallet is performing ${percent}% better than the platform average this month. Consider adding more funds to maximize yield.`,
+} as const;
+
+// Dynamic Text Template Functions
+export const DYNAMIC_TEXT = {
+    /** Displays character count for input fields (e.g., "25/50") */
+    CHARACTER_COUNT: (current: number, max: number) => `${current}/${max}`,
+    /** Truncates a ledger/wallet address for display (e.g., "0x71C765...0ABCDEF") */
+    TRUNCATED_ADDRESS: (address: string, prefixLength = 8, suffixLength = 10) =>
+        `${address.slice(0, prefixLength)}...${address.slice(-suffixLength)}`,
+    /** Displays pagination info (e.g., "Page 1 • 25 transactions") */
+    PAGINATION_INFO: (page: number, count: number) => `Page ${page} • ${count} transactions`,
+    /** Displays growth percentage with sign (e.g., "+12.4%") */
+    GROWTH_PERCENT: (percent: number) => `+${percent}%`,
+    /** Displays amount with prefix for credit/debit (e.g., "+ $100.00" or "- $50.00") */
+    AMOUNT_WITH_PREFIX: (isCredit: boolean) => isCredit ? '+ ' : '- ',
+} as const;
