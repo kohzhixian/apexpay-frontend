@@ -9,7 +9,7 @@ import { TopUpModal } from '../components/TopUpModal';
 import { EditWalletNameModal } from '../components/EditWalletNameModal';
 import { LoadingSkeleton } from '../../../components/ui/LoadingSkeleton';
 import { APP_NAME, WALLETS_TEXT, WALLETS_PAGE_TEXT } from '../constants/text';
-import { useCreateWalletMutation, useGetWalletQuery, useGetRecentTransactionsQuery, useUpdateWalletNameMutation } from '../services/walletApi';
+import { useCreateWalletMutation, useGetWalletQuery, useGetRecentTransactionsQuery, useUpdateWalletNameMutation, useGetMonthlyGrowthQuery } from '../services/walletApi';
 import type { WalletSummary, CreateWalletFormData, CurrencyEnum } from '../types';
 
 /**
@@ -30,6 +30,9 @@ export const WalletsPage = () => {
 
     // RTK Query for fetching recent transactions
     const { data: recentActivities, isLoading: isLoadingActivities } = useGetRecentTransactionsQuery();
+
+    // RTK Query for fetching monthly growth percentage
+    const { data: monthlyGrowthData } = useGetMonthlyGrowthQuery();
 
     // RTK Query mutation for creating wallet
     const [createWallet, { isLoading: isCreatingWallet }] = useCreateWalletMutation();
@@ -218,7 +221,7 @@ export const WalletsPage = () => {
                     <NetWorthCard
                         totalNetWorth={totalNetWorth}
                         currency="SGD"
-                        monthlyGrowth={0}
+                        monthlyGrowth={monthlyGrowthData?.monthlyGrowth ?? 0}
                         activeCurrencies={wallets.length}
                     />
 

@@ -20,6 +20,7 @@ import type {
     UpdateWalletNameRequest,
     UpdateWalletNameResponse,
     GetMonthlySummaryResponse,
+    GetMonthlyGrowthResponse,
 } from '../types';
 
 /** Base path for wallet API endpoints */
@@ -213,6 +214,20 @@ export const walletApi = protectedApi.injectEndpoints({
             providesTags: ['Transaction'],
             keepUnusedDataFor: CACHE_DURATIONS.SEMI_STABLE,
         }),
+
+        /**
+         * Gets monthly growth percentage for the user's wallets
+         * User ID is extracted from the auth header by the backend
+         * 
+         * Cache: SEMI_STABLE (300s / 5 minutes)
+         * Growth percentage changes with transactions but doesn't need real-time updates.
+         * Cache is invalidated when transactions occur.
+         */
+        getMonthlyGrowth: builder.query<GetMonthlyGrowthResponse, void>({
+            query: () => `${WALLET_BASE_PATH}/stats/monthly-growth`,
+            providesTags: ['Transaction'],
+            keepUnusedDataFor: CACHE_DURATIONS.SEMI_STABLE,
+        }),
     }),
 });
 
@@ -230,4 +245,5 @@ export const {
     useGetWalletQuery,
     useGetRecentTransactionsQuery,
     useGetMonthlySummaryQuery,
+    useGetMonthlyGrowthQuery,
 } = walletApi;
