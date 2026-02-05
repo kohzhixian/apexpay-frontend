@@ -292,3 +292,9 @@ export interface GetMonthlySummaryResponse {
     /** Currency of the amounts */
     currency: CurrencyEnum;
 }
+
+/** Response for monthly growth percentage */
+export interface GetMonthlyGrowthResponse {
+    /** The growth percentage (can be negative for decline) */
+    monthlyGrowth: number;
+}
